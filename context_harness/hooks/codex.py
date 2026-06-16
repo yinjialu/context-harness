@@ -7,8 +7,8 @@ from pathlib import Path
 
 
 _SYNC_MARKER = "sync codex --latest 1"
-_FEATURES_SECTION_RE = re.compile(r"^\s*\[\s*features\s*\]\s*$")
-_SECTION_RE = re.compile(r"^\s*\[.*\]\s*$")
+_FEATURES_SECTION_RE = re.compile(r"^\s*\[\s*features\s*\]\s*(?:#.*)?$")
+_SECTION_RE = re.compile(r"^\s*\[.*\]\s*(?:#.*)?$")
 
 
 def install_codex_hook(project_root: Path, context_home: Path) -> bool:

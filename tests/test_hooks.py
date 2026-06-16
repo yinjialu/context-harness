@@ -53,6 +53,41 @@ def test_install_codex_hook_recognizes_whitespace_feature_section(tmp_path):
     assert sum(line.strip() in {"[ features ]", "[features]"} for line in config) == 1
 
 
+def test_install_codex_hook_recognizes_commented_feature_section(tmp_path):
+    codex_dir = tmp_path / ".codex"
+    codex_dir.mkdir()
+    (codex_dir / "config.toml").write_text("[features] # enabled flags\nhooks = false\n", encoding="utf-8")
+
+    install_codex_hook(project_root=tmp_path, context_home=tmp_path / "home")
+
+    config = _config_lines(codex_dir / "config.toml")
+    assert "[features] # enabled flags" in config
+    assert "[features]" not in config
+    assert "hooks = true" in config
+    assert "hooks = false" not in config
+    assert sum(line.startswith("[features]") for line in config) == 1
+
+
+def test_install_codex_hook_stops_at_commented_next_section(tmp_path):
+    codex_dir = tmp_path / ".codex"
+    codex_dir.mkdir()
+    (codex_dir / "config.toml").write_text(
+        "[features]\nother = true\n[projects.demo] # user project\ntrust_level = \"trusted\"\n",
+        encoding="utf-8",
+    )
+
+    install_codex_hook(project_root=tmp_path, context_home=tmp_path / "home")
+
+    config = _config_lines(codex_dir / "config.toml")
+    assert config == [
+        "[features]",
+        "other = true",
+        "hooks = true",
+        "[projects.demo] # user project",
+        'trust_level = "trusted"',
+    ]
+
+
 def test_install_codex_hook_updates_deprecated_feature_flag_without_duplicate(tmp_path):
     codex_dir = tmp_path / ".codex"
     codex_dir.mkdir()
