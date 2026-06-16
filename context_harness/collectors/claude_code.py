@@ -91,6 +91,8 @@ def _read_claude_code_session(path: Path) -> Conversation | None:
 
         if event_type not in {"user", "assistant"}:
             continue
+        if event.get("isMeta") is True:
+            continue
 
         payload = event.get("message")
         if not isinstance(payload, dict):
@@ -143,14 +145,17 @@ def sync_claude_code(
     state_path: Path,
     latest: int | None = None,
     all_sessions: bool = False,
+    session_path: Path | None = None,
 ) -> SyncResult:
     output_dir.mkdir(parents=True, exist_ok=True)
-    if not projects_dir.exists():
+    if session_path is not None:
+        session_files = [session_path] if session_path.exists() and session_path.suffix == ".jsonl" else []
+    elif not projects_dir.exists():
         return SyncResult("claude-code", 0, 0, 0, 0, str(output_dir))
-
-    session_files = sorted(projects_dir.rglob("*.jsonl"), key=lambda path: path.stat().st_mtime, reverse=True)
-    if latest is not None and not all_sessions:
-        session_files = session_files[:latest]
+    else:
+        session_files = sorted(projects_dir.rglob("*.jsonl"), key=lambda path: path.stat().st_mtime, reverse=True)
+        if latest is not None and not all_sessions:
+            session_files = session_files[:latest]
 
     state = read_state(state_path)
     claude_code_state = state.setdefault("claude-code", {})

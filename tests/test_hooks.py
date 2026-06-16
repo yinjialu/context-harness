@@ -13,6 +13,43 @@ def _config_lines(path):
     return path.read_text(encoding="utf-8").splitlines()
 
 
+def _write_codex_session(path: Path, session_id: str, message: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "\n".join(
+            [
+                (
+                    '{"timestamp":"2026-06-16T08:00:00Z","type":"session_meta",'
+                    f'"payload":{{"id":"{session_id}","title":"{session_id}"}}}}'
+                ),
+                (
+                    '{"timestamp":"2026-06-16T08:01:00Z","type":"event_msg",'
+                    f'"payload":{{"role":"user","content":"{message}"}}}}'
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_claude_code_session(path: Path, session_id: str, message: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "\n".join(
+            [
+                f'{{"sessionId":"{session_id}","timestamp":"2026-06-16T08:00:00Z","type":"summary","summary":"{session_id}"}}',
+                (
+                    f'{{"sessionId":"{session_id}","timestamp":"2026-06-16T08:01:00Z",'
+                    f'"type":"user","message":{{"role":"user","content":"{message}"}}}}'
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def test_install_codex_hook_is_idempotent(tmp_path):
     changed = install_codex_hook(project_root=tmp_path, context_home=tmp_path / "home")
     unchanged = install_codex_hook(project_root=tmp_path, context_home=tmp_path / "home")
@@ -24,8 +61,8 @@ def test_install_codex_hook_is_idempotent(tmp_path):
     hook = hooks["hooks"]["Stop"][0]["hooks"][0]
     command = hook["command"]
     assert command.startswith("cd ")
-    assert " run --with . context-harness --context-home" in command
-    assert "sync codex --latest 1" in command
+    assert " run --with . python -m context_harness --context-home" in command
+    assert "sync codex --hook-stdin" in command
     assert hook["timeout"] == 30
     assert "async" not in hook
 
@@ -150,7 +187,7 @@ def test_install_codex_hook_preserves_unrelated_settings_and_updates_old_command
     assert settings["hooks"]["Start"][0]["hooks"][0]["command"] == "echo start"
     stop_commands = [hook["command"] for hook in settings["hooks"]["Stop"][0]["hooks"]]
     assert "echo keep" in stop_commands
-    context_hooks = [command for command in stop_commands if "sync codex --latest 1" in command]
+    context_hooks = [command for command in stop_commands if "sync codex" in command]
     assert len(context_hooks) == 1
     assert "--context-home /old" not in context_hooks[0]
     updated_hook = settings["hooks"]["Stop"][0]["hooks"][1]
@@ -206,7 +243,7 @@ def test_install_codex_hook_collapses_duplicate_context_harness_hooks(tmp_path):
         for hook in group["hooks"]
         if isinstance(hook, dict) and "command" in hook
     ]
-    context_hooks = [command for command in commands if "sync codex --latest 1" in command]
+    context_hooks = [command for command in commands if "sync codex" in command]
     assert len(context_hooks) == 1
     assert f"--context-home {shlex.quote(str(tmp_path / 'home'))}" in context_hooks[0]
     assert "echo keep" in commands
@@ -233,8 +270,8 @@ def test_install_claude_code_hook_is_idempotent(tmp_path):
     settings = json.loads(settings_path.read_text(encoding="utf-8"))
     command = settings["hooks"]["Stop"][0]["hooks"][0]["command"]
     assert command.startswith("cd ")
-    assert " run --with . context-harness --context-home" in command
-    assert "sync claude-code --latest 1" in command
+    assert " run --with . python -m context_harness --context-home" in command
+    assert "sync claude-code --hook-stdin" in command
 
 
 def test_install_claude_code_hook_preserves_updates_and_quotes_context_home(tmp_path):
@@ -271,7 +308,7 @@ def test_install_claude_code_hook_preserves_updates_and_quotes_context_home(tmp_
     assert settings["hooks"]["PreToolUse"][0]["hooks"][0]["command"] == "echo pre"
     stop_hooks = settings["hooks"]["Stop"][0]["hooks"]
     assert stop_hooks[0]["command"] == "echo keep"
-    context_hooks = [hook for hook in stop_hooks if "sync claude-code --latest 1" in hook["command"]]
+    context_hooks = [hook for hook in stop_hooks if "sync claude-code" in hook["command"]]
     assert len(context_hooks) == 1
     assert f"--context-home {shlex.quote(str(context_home))}" in context_hooks[0]["command"]
     assert "--context-home /old" not in context_hooks[0]["command"]
@@ -325,7 +362,7 @@ def test_install_claude_code_hook_collapses_duplicate_context_harness_hooks(tmp_
         for hook in group["hooks"]
         if isinstance(hook, dict) and "command" in hook
     ]
-    context_hooks = [command for command in commands if "sync claude-code --latest 1" in command]
+    context_hooks = [command for command in commands if "sync claude-code" in command]
     assert len(context_hooks) == 1
     assert f"--context-home {shlex.quote(str(tmp_path / 'home'))}" in context_hooks[0]
     assert "echo keep" in commands
@@ -334,12 +371,17 @@ def test_install_claude_code_hook_collapses_duplicate_context_harness_hooks(tmp_
 def test_generated_codex_hook_command_runs_from_non_repo_cwd(tmp_path):
     context_home = tmp_path / "home"
     context_home.mkdir()
-    missing_source = tmp_path / "missing-source"
+    sessions_dir = tmp_path / "sessions"
+    target_session = sessions_dir / "older.jsonl"
+    newer_session = sessions_dir / "newer.jsonl"
+    _write_codex_session(target_session, "target-session", "target from stdin")
+    _write_codex_session(newer_session, "newer-session", "newer by mtime")
+    newer_session.touch()
     (context_home / "config.toml").write_text(
         f"""
 [sources.codex]
 enabled = true
-sessions_dir = "{missing_source}"
+sessions_dir = "{sessions_dir}"
 output_dir = "conversations/codex"
 """,
         encoding="utf-8",
@@ -351,22 +393,36 @@ output_dir = "conversations/codex"
     hooks = json.loads((tmp_path / "project" / ".codex" / "hooks.json").read_text(encoding="utf-8"))
     command = hooks["hooks"]["Stop"][0]["hooks"][0]["command"]
     log_path.unlink(missing_ok=True)
-    result = subprocess.run(command, shell=True, cwd="/tmp", check=False)
+    result = subprocess.run(
+        command,
+        shell=True,
+        cwd="/tmp",
+        check=False,
+        input=json.dumps({"transcript_path": str(target_session)}),
+        text=True,
+    )
 
     assert result.returncode == 0
-    log = log_path.read_text(encoding="utf-8")
-    assert "source=codex checked=0 created=0 updated=0 skipped=0" in log
+    archive = next((context_home / "conversations" / "codex").glob("*.md"))
+    content = archive.read_text(encoding="utf-8")
+    assert "target from stdin" in content
+    assert "newer by mtime" not in content
 
 
 def test_generated_claude_code_hook_command_runs_from_non_repo_cwd(tmp_path):
     context_home = tmp_path / "home"
     context_home.mkdir()
-    missing_source = tmp_path / "missing-source"
+    projects_dir = tmp_path / "projects"
+    target_session = projects_dir / "older.jsonl"
+    newer_session = projects_dir / "newer.jsonl"
+    _write_claude_code_session(target_session, "target-session", "target from stdin")
+    _write_claude_code_session(newer_session, "newer-session", "newer by mtime")
+    newer_session.touch()
     (context_home / "config.toml").write_text(
         f"""
 [sources.claude-code]
 enabled = true
-projects_dir = "{missing_source}"
+projects_dir = "{projects_dir}"
 output_dir = "conversations/claude-code"
 """,
         encoding="utf-8",
@@ -378,11 +434,20 @@ output_dir = "conversations/claude-code"
     settings = json.loads((tmp_path / "settings.json").read_text(encoding="utf-8"))
     command = settings["hooks"]["Stop"][0]["hooks"][0]["command"]
     log_path.unlink(missing_ok=True)
-    result = subprocess.run(command, shell=True, cwd="/tmp", check=False)
+    result = subprocess.run(
+        command,
+        shell=True,
+        cwd="/tmp",
+        check=False,
+        input=json.dumps({"transcript_path": str(target_session)}),
+        text=True,
+    )
 
     assert result.returncode == 0
-    log = log_path.read_text(encoding="utf-8")
-    assert "source=claude-code checked=0 created=0 updated=0 skipped=0" in log
+    archive = next((context_home / "conversations" / "claude-code").glob("*.md"))
+    content = archive.read_text(encoding="utf-8")
+    assert "target from stdin" in content
+    assert "newer by mtime" not in content
 
 
 def test_install_codex_hook_fails_when_uv_is_missing(tmp_path, monkeypatch):

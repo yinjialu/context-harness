@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 
 
-_SYNC_MARKER = "sync codex --latest 1"
+_SYNC_MARKER = "sync codex"
 _FEATURES_SECTION_RE = re.compile(r"^\s*\[\s*features\s*\]\s*(?:#.*)?$")
 _SECTION_RE = re.compile(r"^\s*\[.*\]\s*(?:#.*)?$")
 
@@ -19,8 +19,8 @@ def install_codex_hook(project_root: Path, context_home: Path) -> bool:
     command = (
         f"cd {shlex.quote(str(_harness_root()))} && "
         f"{shlex.quote(_uv_executable())} run --with . "
-        f"context-harness --context-home {shlex.quote(str(context_home))} "
-        "sync codex --latest 1 >/tmp/context-harness-codex.log 2>&1 || true"
+        f"python -m context_harness --context-home {shlex.quote(str(context_home))} "
+        "sync codex --hook-stdin >/tmp/context-harness-codex.log 2>&1 || true"
     )
 
     codex_dir.mkdir(parents=True, exist_ok=True)

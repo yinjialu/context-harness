@@ -6,15 +6,15 @@ import shutil
 from pathlib import Path
 
 
-_SYNC_MARKER = "sync claude-code --latest 1"
+_SYNC_MARKER = "sync claude-code"
 
 
 def install_claude_code_hook(settings_path: Path, context_home: Path) -> bool:
     command = (
         f"cd {shlex.quote(str(_harness_root()))} && "
         f"{shlex.quote(_uv_executable())} run --with . "
-        f"context-harness --context-home {shlex.quote(str(context_home))} "
-        "sync claude-code --latest 1 >/tmp/context-harness-claude-code.log 2>&1 || true"
+        f"python -m context_harness --context-home {shlex.quote(str(context_home))} "
+        "sync claude-code --hook-stdin >/tmp/context-harness-claude-code.log 2>&1 || true"
     )
 
     settings_path.parent.mkdir(parents=True, exist_ok=True)

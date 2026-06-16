@@ -91,6 +91,26 @@ def test_sync_codex_discovers_nested_sessions_and_latest_uses_mtime(tmp_path):
     assert "旧会话" not in content
 
 
+def test_sync_codex_session_path_overrides_latest_mtime(tmp_path):
+    sessions_dir = tmp_path / "sessions"
+    older = sessions_dir / "older.jsonl"
+    newer = sessions_dir / "newer.jsonl"
+    _write_session(older, "older-session", "Older Session", "hook target")
+    _write_session(newer, "newer-session", "Newer Session", "mtime winner")
+    newer.touch()
+
+    output_dir = tmp_path / "out"
+    result = sync_codex(sessions_dir, output_dir, tmp_path / "state.json", latest=1, session_path=older)
+
+    archives = list(output_dir.glob("*.md"))
+    assert result.checked == 1
+    assert result.created == 1
+    assert len(archives) == 1
+    content = archives[0].read_text(encoding="utf-8")
+    assert "hook target" in content
+    assert "mtime winner" not in content
+
+
 def test_sync_codex_reads_response_item_message_content_arrays(tmp_path):
     sessions_dir = tmp_path / "sessions"
     sessions_dir.mkdir()

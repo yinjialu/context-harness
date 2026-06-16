@@ -135,7 +135,9 @@ uv run context-harness --context-home ~/.context-harness hooks install claude-co
 
 hook installer 是幂等的，重复执行会更新已有的 context-harness sync hook，不会清空已有的其他 hook 配置。
 
-hook 命令会记录安装时的 `context-harness` 仓库绝对路径；安装后如果移动或删除该仓库，需要重新安装 hooks。
+hook 命令会读取 hook stdin 里的 `transcript_path`，优先同步当前结束的 transcript，而不是按全局 mtime 猜最近一条会话。安装时会记录 `context-harness` 仓库绝对路径；安装后如果移动或删除该仓库，需要重新安装 hooks。
+
+Codex 的 command hook 可能需要额外 trust review。安装后如果 Codex 提示 hook 未信任，请在 Codex 里运行 `/hooks` 并确认 `context-harness` hook。
 
 ## 设计文档
 

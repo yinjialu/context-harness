@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -29,6 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
     sync_mode = sync_parser.add_mutually_exclusive_group()
     sync_mode.add_argument("--latest", type=int)
     sync_mode.add_argument("--all", action="store_true")
+    sync_mode.add_argument("--hook-stdin", action="store_true", help="Read hook JSON from stdin and sync its transcript")
 
     hooks_parser = subparsers.add_parser("hooks", help="Manage Agent hooks")
     hooks_subparsers = hooks_parser.add_subparsers(dest="hooks_command", required=True)
@@ -53,6 +56,26 @@ def _print_result(result: SyncResult) -> None:
     )
 
 
+def _disabled_result(source: str, output_dir: Path) -> SyncResult:
+    return SyncResult(source, 0, 0, 0, 0, str(output_dir))
+
+
+def _hook_transcript_path() -> Path | None:
+    raw = sys.stdin.read()
+    if not raw.strip():
+        return None
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    transcript_path = payload.get("transcript_path")
+    if not isinstance(transcript_path, str) or not transcript_path:
+        return None
+    return Path(transcript_path).expanduser().resolve()
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     try:
@@ -69,31 +92,43 @@ def main(argv: Sequence[str] | None = None) -> int:
             codex_changed = install_codex_hook(Path.cwd(), result.context_home)
             claude_changed = install_claude_code_hook(Path.home() / ".claude" / "settings.json", result.context_home)
             print(f"codex hook: {'updated' if codex_changed else 'unchanged'}")
+            print("codex hook trust: run /hooks in Codex and approve the context-harness hook if prompted")
             print(f"claude-code hook: {'updated' if claude_changed else 'unchanged'}")
         return 0
 
     if args.command == "sync":
         config = load_config(args.context_home)
         latest = args.latest
+        session_path = _hook_transcript_path() if args.hook_stdin else None
+        if args.hook_stdin and session_path is None:
+            latest = 1
         if args.source == "codex":
-            result = sync_codex(
-                config.codex.sessions_dir,
-                config.codex.output_dir,
-                config.context_home / "state" / "codex-sync-state.json",
-                latest=latest,
-                all_sessions=args.all,
-            )
+            if config.codex.enabled:
+                result = sync_codex(
+                    config.codex.sessions_dir,
+                    config.codex.output_dir,
+                    config.context_home / "state" / "codex-sync-state.json",
+                    latest=latest,
+                    all_sessions=args.all,
+                    session_path=session_path,
+                )
+            else:
+                result = _disabled_result("codex", config.codex.output_dir)
             _print_result(result)
             return 0
 
         if args.source == "claude-code":
-            result = sync_claude_code(
-                config.claude_code.projects_dir,
-                config.claude_code.output_dir,
-                config.context_home / "state" / "claude-code-sync-state.json",
-                latest=latest,
-                all_sessions=args.all,
-            )
+            if config.claude_code.enabled:
+                result = sync_claude_code(
+                    config.claude_code.projects_dir,
+                    config.claude_code.output_dir,
+                    config.context_home / "state" / "claude-code-sync-state.json",
+                    latest=latest,
+                    all_sessions=args.all,
+                    session_path=session_path,
+                )
+            else:
+                result = _disabled_result("claude-code", config.claude_code.output_dir)
             _print_result(result)
             return 0
 
@@ -103,6 +138,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             project_root = Path(args.project_root).expanduser().resolve()
             changed = install_codex_hook(project_root, context_home)
             print(f"codex hook: {'updated' if changed else 'unchanged'}")
+            print("codex hook trust: run /hooks in Codex and approve the context-harness hook if prompted")
             return 0
 
         if args.source == "claude-code":

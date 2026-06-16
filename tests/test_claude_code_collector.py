@@ -110,6 +110,26 @@ def test_sync_claude_code_discovers_nested_sessions_and_latest_uses_mtime(tmp_pa
     assert "旧会话" not in content
 
 
+def test_sync_claude_code_session_path_overrides_latest_mtime(tmp_path):
+    projects_dir = tmp_path / "projects"
+    older = projects_dir / "older.jsonl"
+    newer = projects_dir / "newer.jsonl"
+    _write_session(older, "older-session", "Older Session", "hook target")
+    _write_session(newer, "newer-session", "Newer Session", "mtime winner")
+    newer.touch()
+
+    output_dir = tmp_path / "out"
+    result = sync_claude_code(projects_dir, output_dir, tmp_path / "state.json", latest=1, session_path=older)
+
+    archives = list(output_dir.glob("*.md"))
+    assert result.checked == 1
+    assert result.created == 1
+    assert len(archives) == 1
+    content = archives[0].read_text(encoding="utf-8")
+    assert "hook target" in content
+    assert "mtime winner" not in content
+
+
 def test_sync_claude_code_counts_noise_files_as_checked_without_creating_archive(tmp_path):
     projects_dir = tmp_path / "projects"
     projects_dir.mkdir()
@@ -124,6 +144,38 @@ def test_sync_claude_code_counts_noise_files_as_checked_without_creating_archive
     assert result.created == 0
     assert result.updated == 0
     assert result.skipped == 0
+
+
+def test_sync_claude_code_skips_meta_user_messages(tmp_path):
+    projects_dir = tmp_path / "projects"
+    projects_dir.mkdir()
+    (projects_dir / "meta.jsonl").write_text(
+        "\n".join(
+            [
+                '{"sessionId":"meta","timestamp":"2026-06-16T08:00:00Z","type":"summary","summary":"Meta"}',
+                (
+                    '{"sessionId":"meta","timestamp":"2026-06-16T08:01:00Z","type":"user","isMeta":true,'
+                    '"message":{"role":"user","content":"internal reminder should not leak"}}'
+                ),
+                (
+                    '{"sessionId":"meta","timestamp":"2026-06-16T08:02:00Z","type":"user",'
+                    '"message":{"role":"user","content":"real user message"}}'
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    output_dir = tmp_path / "out"
+    result = sync_claude_code(projects_dir, output_dir, tmp_path / "state.json", latest=1)
+
+    archives = list(output_dir.glob("*.md"))
+    assert result.created == 1
+    assert len(archives) == 1
+    content = archives[0].read_text(encoding="utf-8")
+    assert "real user message" in content
+    assert "internal reminder should not leak" not in content
 
 
 def test_sync_claude_code_skips_bad_json_lines_and_keeps_valid_messages(tmp_path):

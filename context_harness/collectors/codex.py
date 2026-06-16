@@ -128,14 +128,17 @@ def sync_codex(
     state_path: Path,
     latest: int | None = None,
     all_sessions: bool = False,
+    session_path: Path | None = None,
 ) -> SyncResult:
     output_dir.mkdir(parents=True, exist_ok=True)
-    if not sessions_dir.exists():
+    if session_path is not None:
+        session_files = [session_path] if session_path.exists() and session_path.suffix == ".jsonl" else []
+    elif not sessions_dir.exists():
         return SyncResult("codex", 0, 0, 0, 0, str(output_dir))
-
-    session_files = sorted(sessions_dir.rglob("*.jsonl"), key=lambda path: path.stat().st_mtime, reverse=True)
-    if latest is not None and not all_sessions:
-        session_files = session_files[:latest]
+    else:
+        session_files = sorted(sessions_dir.rglob("*.jsonl"), key=lambda path: path.stat().st_mtime, reverse=True)
+        if latest is not None and not all_sessions:
+            session_files = session_files[:latest]
 
     state = read_state(state_path)
     codex_state = state.setdefault("codex", {})
