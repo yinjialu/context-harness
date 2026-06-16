@@ -16,7 +16,17 @@ V1 supports:
 
 Claude Web, Antigravity, ChatGPT, Gemini, and browser exports are outside V1.
 
+## Workflow
+
+1. Locate the `context-harness` repository or ask the user for the path.
+2. Resolve the context home from `CONTEXT_HARNESS_HOME`, the user's explicit path, or `~/.context-harness`.
+3. Change to the `context-harness` repository root.
+4. Run the requested sync command from the repository root.
+5. Summarize `checked`, `created`, `updated`, `skipped`, and `output_dir`.
+
 ## Commands
+
+Before running any command, first locate the `context-harness` repository and change to its repository root. Run all `uv run ...` commands from that root.
 
 Incremental sync:
 
