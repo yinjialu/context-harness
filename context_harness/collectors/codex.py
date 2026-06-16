@@ -12,14 +12,46 @@ from context_harness.state import read_state, write_state
 
 
 def _parse_time(value: str | None) -> datetime | None:
-    if not value:
+    if not isinstance(value, str) or not value:
         return None
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 def _safe_name(value: str) -> str:
     name = re.sub(r"[^A-Za-z0-9._-]+", "-", value.strip()).strip("-._")
     return name or "conversation"
+
+
+def _message_content(payload: dict[str, Any]) -> str:
+    content = payload.get("content")
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, list):
+        return ""
+
+    parts = []
+    for item in content:
+        if not isinstance(item, dict):
+            continue
+        text = item.get("text")
+        if isinstance(text, str):
+            parts.append(text)
+    return "\n".join(parts)
+
+
+def _message_payload(event: dict[str, Any]) -> dict[str, Any] | None:
+    payload = event.get("payload")
+    if not isinstance(payload, dict):
+        return None
+
+    if event.get("type") == "event_msg":
+        return payload
+    if event.get("type") == "response_item" and payload.get("type") == "message":
+        return payload
+    return None
 
 
 def _read_codex_session(path: Path) -> Conversation | None:
@@ -29,10 +61,19 @@ def _read_codex_session(path: Path) -> Conversation | None:
     created_at: datetime | None = None
     messages: list[Message] = []
 
-    for line in path.read_text(encoding="utf-8").splitlines():
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+
+    for line in lines:
         if not line.strip():
             continue
-        event: dict[str, Any] = json.loads(line)
+        try:
+            event: dict[str, Any] = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
         event_time = _parse_time(event.get("timestamp"))
         payload = event.get("payload") or {}
 
@@ -43,15 +84,15 @@ def _read_codex_session(path: Path) -> Conversation | None:
             created_at = event_time or created_at
             continue
 
-        if event.get("type") != "event_msg":
+        message_payload = _message_payload(event)
+        if message_payload is None:
             continue
-
-        role = payload.get("role")
+        role = message_payload.get("role")
         if role not in {"user", "assistant"}:
             continue
 
-        content = str(payload.get("content") or "").strip()
-        if not content:
+        content = _message_content(message_payload)
+        if not content.strip():
             continue
 
         if created_at is None:
@@ -75,7 +116,9 @@ def _read_codex_session(path: Path) -> Conversation | None:
 
 def _archive_path(output_dir: Path, conversation: Conversation) -> Path:
     date = conversation.created_at.strftime("%Y-%m-%d")
-    name = _safe_name(f"{date}-{conversation.session_id}-{conversation.title}")
+    short_id = _safe_name(conversation.session_id)[:32]
+    slug = _safe_name(conversation.title)[:80]
+    name = "-".join(part for part in [date, short_id, slug] if part)
     return output_dir / f"{name}.md"
 
 
@@ -90,7 +133,7 @@ def sync_codex(
     if not sessions_dir.exists():
         return SyncResult("codex", 0, 0, 0, 0, str(output_dir))
 
-    session_files = sorted(sessions_dir.glob("*.jsonl"), key=lambda path: path.stat().st_mtime, reverse=True)
+    session_files = sorted(sessions_dir.rglob("*.jsonl"), key=lambda path: path.stat().st_mtime, reverse=True)
     if latest is not None and not all_sessions:
         session_files = session_files[:latest]
 
@@ -99,11 +142,11 @@ def sync_codex(
     checked = created = updated = skipped = 0
 
     for session_file in session_files:
+        checked += 1
         conversation = _read_codex_session(session_file)
         if conversation is None:
             continue
 
-        checked += 1
         archive_path = _archive_path(output_dir, conversation)
         message_count = len(conversation.messages)
         previous = codex_state.get(conversation.session_id, {})
