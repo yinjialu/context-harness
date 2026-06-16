@@ -10,3 +10,11 @@ def test_cli_help_returns_zero(capsys):
     assert "init" in captured.out
     assert "sync" in captured.out
     assert "hooks" in captured.out
+
+
+def test_cli_requires_top_level_command():
+    assert main([]) == 2
+
+
+def test_cli_hooks_requires_nested_command():
+    assert main(["hooks"]) == 2

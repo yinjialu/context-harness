@@ -9,7 +9,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="context-harness",
         description="Local-first personal AI context loop for Code Agent conversations.",
     )
-    subparsers = parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("init", help="Initialize context-harness data home")
 
@@ -20,7 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     sync_mode.add_argument("--all", action="store_true")
 
     hooks_parser = subparsers.add_parser("hooks", help="Manage Agent hooks")
-    hooks_subparsers = hooks_parser.add_subparsers(dest="hooks_command")
+    hooks_subparsers = hooks_parser.add_subparsers(dest="hooks_command", required=True)
     hooks_install = hooks_subparsers.add_parser("install", help="Install hooks")
     hooks_install.add_argument("source", choices=["codex", "claude-code"])
 
