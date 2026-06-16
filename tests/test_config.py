@@ -30,3 +30,32 @@ def test_load_config_defaults(tmp_path, monkeypatch):
     assert config.claude_code.projects_dir == Path("~/.claude/projects").expanduser()
     assert config.claude_code.output_dir == tmp_path / "conversations" / "claude-code"
     assert config.memory.global_context_file == tmp_path / "global-claude.md"
+
+
+def test_load_config_resolves_custom_paths(tmp_path, monkeypatch):
+    monkeypatch.delenv("CONTEXT_HARNESS_HOME", raising=False)
+    codex_output_dir = tmp_path / "absolute-codex-output"
+    global_context_file = tmp_path / "absolute-global-claude.md"
+    (tmp_path / "config.toml").write_text(
+        f"""
+[sources.codex]
+sessions_dir = "fixtures/codex"
+output_dir = "{codex_output_dir}"
+
+[sources.claude-code]
+projects_dir = "fixtures/claude"
+
+[memory]
+profile_file = "memory/profile.md"
+global_context_file = "{global_context_file}"
+""",
+        encoding="utf-8",
+    )
+
+    config = load_config(context_home=tmp_path)
+
+    assert config.codex.sessions_dir == tmp_path / "fixtures/codex"
+    assert config.codex.output_dir == codex_output_dir
+    assert config.claude_code.projects_dir == tmp_path / "fixtures/claude"
+    assert config.memory.profile_file == tmp_path / "memory/profile.md"
+    assert config.memory.global_context_file == global_context_file

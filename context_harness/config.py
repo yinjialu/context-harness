@@ -73,12 +73,12 @@ def load_config(context_home: str | Path | None = None) -> AppConfig:
 
     codex = SourceConfig(
         enabled=bool(codex_raw.get("enabled", True)),
-        input_dir=Path(codex_raw.get("sessions_dir", "~/.codex/sessions")).expanduser(),
+        input_dir=_resolve_path(resolved_home, codex_raw.get("sessions_dir", "~/.codex/sessions")),
         output_dir=_resolve_path(resolved_home, codex_raw.get("output_dir", "conversations/codex")),
     )
     claude_code = SourceConfig(
         enabled=bool(claude_raw.get("enabled", True)),
-        input_dir=Path(claude_raw.get("projects_dir", "~/.claude/projects")).expanduser(),
+        input_dir=_resolve_path(resolved_home, claude_raw.get("projects_dir", "~/.claude/projects")),
         output_dir=_resolve_path(resolved_home, claude_raw.get("output_dir", "conversations/claude-code")),
     )
     memory = MemoryConfig(
