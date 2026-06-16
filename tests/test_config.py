@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from context_harness.config import load_config, resolve_context_home
 
 
@@ -61,3 +63,56 @@ global_context_file = "{global_context_file}"
     assert config.claude_code.output_dir == tmp_path / "exports/claude"
     assert config.memory.profile_file == tmp_path / "memory/profile.md"
     assert config.memory.global_context_file == global_context_file
+
+
+@pytest.mark.parametrize(
+    ("path_kind", "configured_path", "expected_path"),
+    [
+        ("relative", "fixtures/matrix", "context_home:fixtures/matrix"),
+        ("absolute", "absolute-matrix", "absolute-matrix"),
+        ("home", "~/context-harness-matrix", "home:~/context-harness-matrix"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("config_body", "actual_path"),
+    [
+        (
+            "[sources.codex]\nsessions_dir = {configured_path}\n",
+            lambda config: config.codex.sessions_dir,
+        ),
+        (
+            "[sources.claude-code]\noutput_dir = {configured_path}\n",
+            lambda config: config.claude_code.output_dir,
+        ),
+        (
+            "[memory]\nprofile_file = {configured_path}\n",
+            lambda config: config.memory.profile_file,
+        ),
+    ],
+    ids=["source-input", "source-output", "memory"],
+)
+def test_load_config_resolves_path_matrix(
+    tmp_path,
+    monkeypatch,
+    path_kind,
+    configured_path,
+    expected_path,
+    config_body,
+    actual_path,
+):
+    monkeypatch.delenv("CONTEXT_HARNESS_HOME", raising=False)
+    if path_kind == "absolute":
+        configured_path = str(tmp_path / configured_path)
+        expected = Path(configured_path)
+    elif path_kind == "home":
+        expected = Path(expected_path.removeprefix("home:")).expanduser()
+    else:
+        expected = tmp_path / expected_path.removeprefix("context_home:")
+    (tmp_path / "config.toml").write_text(
+        config_body.format(configured_path=repr(configured_path)),
+        encoding="utf-8",
+    )
+
+    config = load_config(context_home=tmp_path)
+
+    assert actual_path(config) == expected
