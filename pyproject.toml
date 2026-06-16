@@ -1,0 +1,22 @@
+[project]
+name = "context-harness"
+version = "0.1.0"
+description = "Local-first personal AI context loop for Code Agent conversations"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+context-harness = "context_harness.cli:entrypoint"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
