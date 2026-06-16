@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shlex
 from pathlib import Path
 
@@ -30,7 +31,9 @@ def _ensure_codex_hooks_feature(config_path: Path) -> bool:
     else:
         original = ""
 
-    updated = _set_feature_flag(original, "codex_hooks", "true")
+    updated = _set_feature_flag(original, "hooks", "true")
+    if _has_feature_flag(updated, "codex_hooks"):
+        updated = _set_feature_flag(updated, "codex_hooks", "true")
     if updated == original:
         return False
 
@@ -60,10 +63,9 @@ def _set_feature_flag(content: str, key: str, value: str) -> str:
             lines.extend(["[features]", f"{key} = {value}"])
         return "\n".join(lines) + "\n"
 
-    key_prefix = f"{key} "
+    key_pattern = re.compile(rf"^\s*{re.escape(key)}\s*=")
     for index in range(features_start + 1, features_end):
-        stripped = lines[index].strip()
-        if stripped.startswith(key_prefix) or stripped.startswith(f"{key}="):
+        if key_pattern.match(lines[index]):
             if lines[index] == f"{key} = {value}":
                 return content if has_trailing_newline else content + "\n"
             lines[index] = f"{key} = {value}"
@@ -71,6 +73,27 @@ def _set_feature_flag(content: str, key: str, value: str) -> str:
 
     lines.insert(features_end, f"{key} = {value}")
     return "\n".join(lines) + "\n"
+
+
+def _has_feature_flag(content: str, key: str) -> bool:
+    lines = content.splitlines()
+    features_start: int | None = None
+    features_end = len(lines)
+    key_pattern = re.compile(rf"^\s*{re.escape(key)}\s*=")
+
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped == "[features]":
+            features_start = index
+            continue
+        if features_start is not None and index > features_start and stripped.startswith("[") and stripped.endswith("]"):
+            features_end = index
+            break
+
+    if features_start is None:
+        return False
+
+    return any(key_pattern.match(lines[index]) for index in range(features_start + 1, features_end))
 
 
 def _ensure_stop_command_hook(hooks_path: Path, command: str) -> bool:
@@ -87,12 +110,7 @@ def _ensure_stop_command_hook(hooks_path: Path, command: str) -> bool:
         return _write_if_changed(hooks_path, original, updated)
 
     target_group = _first_hook_group(stop_hooks)
-    target_group.setdefault("hooks", []).append(
-        {
-            "type": "command",
-            "command": command,
-        }
-    )
+    target_group.setdefault("hooks", []).append(_command_hook(command))
     return _write_if_changed(hooks_path, original, updated)
 
 
@@ -100,6 +118,14 @@ def _load_json_object(path: Path) -> dict:
     if not path.exists():
         return {}
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _command_hook(command: str) -> dict:
+    return {
+        "type": "command",
+        "command": command,
+        "timeout": 30,
+    }
 
 
 def _update_existing_command(stop_hooks: list, command: str) -> bool:
@@ -112,8 +138,8 @@ def _update_existing_command(stop_hooks: list, command: str) -> bool:
                 continue
             existing_command = hook.get("command")
             if isinstance(existing_command, str) and _SYNC_MARKER in existing_command:
-                hook["type"] = "command"
-                hook["command"] = command
+                hook.update(_command_hook(command))
+                hook.pop("async", None)
                 found = True
     return found
 
