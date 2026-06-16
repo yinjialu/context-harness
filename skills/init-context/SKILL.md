@@ -14,20 +14,19 @@ Use this skill to initialize or repair a `context-harness` installation.
    - Use `CONTEXT_HARNESS_HOME` when set.
    - Use the user's explicit path when provided.
    - Otherwise use `~/.context-harness`.
-3. Change to the `context-harness` repository root.
-4. Before running any command, first locate the `context-harness` repository and change to its repository root. Run all `uv run ...` commands from that root:
+3. Change to the `context-harness` repository root. Run all `uv run context-harness ...` commands from that root:
 
 ```bash
 uv run context-harness --context-home <context-home> init
 ```
 
-5. If the user wants automatic backup hooks, run these commands from the same repository root:
+4. If the user wants automatic backup hooks, run these commands from the same repository root. For Codex, set `--project-root` to the Codex project that should receive `.codex/` hook config:
 
 ```bash
-uv run context-harness --context-home <context-home> hooks install codex
+uv run context-harness --context-home <context-home> hooks install codex --project-root <codex-project-root>
 uv run context-harness --context-home <context-home> hooks install claude-code
 ```
 
-6. Report the data home and hook status.
+5. Report the data home and hook status.
 
 Do not store user conversations or memory inside the `context-harness` repository unless the user explicitly chooses that path as the data home.

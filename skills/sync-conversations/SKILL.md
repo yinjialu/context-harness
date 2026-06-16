@@ -26,7 +26,7 @@ Claude Web, Antigravity, ChatGPT, Gemini, and browser exports are outside V1.
 
 ## Commands
 
-Before running any command, first locate the `context-harness` repository and change to its repository root. Run all `uv run ...` commands from that root.
+Before running any command, first locate the `context-harness` repository and change to its repository root. Run all `uv run context-harness ...` commands from that root.
 
 Incremental sync:
 

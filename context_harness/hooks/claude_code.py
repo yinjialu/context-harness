@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shlex
+import shutil
 from pathlib import Path
 
 
@@ -10,12 +11,25 @@ _SYNC_MARKER = "sync claude-code --latest 1"
 
 def install_claude_code_hook(settings_path: Path, context_home: Path) -> bool:
     command = (
+        f"cd {shlex.quote(str(_harness_root()))} && "
+        f"{shlex.quote(_uv_executable())} run --with . "
         f"context-harness --context-home {shlex.quote(str(context_home))} "
         "sync claude-code --latest 1 >/tmp/context-harness-claude-code.log 2>&1 || true"
     )
 
     settings_path.parent.mkdir(parents=True, exist_ok=True)
     return _ensure_stop_command_hook(settings_path, command)
+
+
+def _harness_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _uv_executable() -> str:
+    uv_path = shutil.which("uv")
+    if uv_path is None:
+        raise RuntimeError("uv executable not found; install uv before installing context-harness hooks")
+    return uv_path
 
 
 def _ensure_stop_command_hook(settings_path: Path, command: str) -> bool:

@@ -1,5 +1,9 @@
 import json
 import shlex
+import subprocess
+from pathlib import Path
+
+import pytest
 
 from context_harness.hooks.claude_code import install_claude_code_hook
 from context_harness.hooks.codex import install_codex_hook
@@ -19,7 +23,8 @@ def test_install_codex_hook_is_idempotent(tmp_path):
     hooks = json.loads((tmp_path / ".codex" / "hooks.json").read_text(encoding="utf-8"))
     hook = hooks["hooks"]["Stop"][0]["hooks"][0]
     command = hook["command"]
-    assert "context-harness --context-home" in command
+    assert command.startswith("cd ")
+    assert " run --with . context-harness --context-home" in command
     assert "sync codex --latest 1" in command
     assert hook["timeout"] == 30
     assert "async" not in hook
@@ -227,7 +232,8 @@ def test_install_claude_code_hook_is_idempotent(tmp_path):
     assert unchanged is False
     settings = json.loads(settings_path.read_text(encoding="utf-8"))
     command = settings["hooks"]["Stop"][0]["hooks"][0]["command"]
-    assert "context-harness --context-home" in command
+    assert command.startswith("cd ")
+    assert " run --with . context-harness --context-home" in command
     assert "sync claude-code --latest 1" in command
 
 
@@ -323,3 +329,71 @@ def test_install_claude_code_hook_collapses_duplicate_context_harness_hooks(tmp_
     assert len(context_hooks) == 1
     assert f"--context-home {shlex.quote(str(tmp_path / 'home'))}" in context_hooks[0]
     assert "echo keep" in commands
+
+
+def test_generated_codex_hook_command_runs_from_non_repo_cwd(tmp_path):
+    context_home = tmp_path / "home"
+    context_home.mkdir()
+    missing_source = tmp_path / "missing-source"
+    (context_home / "config.toml").write_text(
+        f"""
+[sources.codex]
+enabled = true
+sessions_dir = "{missing_source}"
+output_dir = "conversations/codex"
+""",
+        encoding="utf-8",
+    )
+    log_path = Path("/tmp/context-harness-codex.log")
+
+    install_codex_hook(project_root=tmp_path / "project", context_home=context_home)
+
+    hooks = json.loads((tmp_path / "project" / ".codex" / "hooks.json").read_text(encoding="utf-8"))
+    command = hooks["hooks"]["Stop"][0]["hooks"][0]["command"]
+    log_path.unlink(missing_ok=True)
+    result = subprocess.run(command, shell=True, cwd="/tmp", check=False)
+
+    assert result.returncode == 0
+    log = log_path.read_text(encoding="utf-8")
+    assert "source=codex checked=0 created=0 updated=0 skipped=0" in log
+
+
+def test_generated_claude_code_hook_command_runs_from_non_repo_cwd(tmp_path):
+    context_home = tmp_path / "home"
+    context_home.mkdir()
+    missing_source = tmp_path / "missing-source"
+    (context_home / "config.toml").write_text(
+        f"""
+[sources.claude-code]
+enabled = true
+projects_dir = "{missing_source}"
+output_dir = "conversations/claude-code"
+""",
+        encoding="utf-8",
+    )
+    log_path = Path("/tmp/context-harness-claude-code.log")
+
+    install_claude_code_hook(settings_path=tmp_path / "settings.json", context_home=context_home)
+
+    settings = json.loads((tmp_path / "settings.json").read_text(encoding="utf-8"))
+    command = settings["hooks"]["Stop"][0]["hooks"][0]["command"]
+    log_path.unlink(missing_ok=True)
+    result = subprocess.run(command, shell=True, cwd="/tmp", check=False)
+
+    assert result.returncode == 0
+    log = log_path.read_text(encoding="utf-8")
+    assert "source=claude-code checked=0 created=0 updated=0 skipped=0" in log
+
+
+def test_install_codex_hook_fails_when_uv_is_missing(tmp_path, monkeypatch):
+    monkeypatch.setattr("context_harness.hooks.codex.shutil.which", lambda _: None)
+
+    with pytest.raises(RuntimeError, match="uv executable not found"):
+        install_codex_hook(project_root=tmp_path, context_home=tmp_path / "home")
+
+
+def test_install_claude_code_hook_fails_when_uv_is_missing(tmp_path, monkeypatch):
+    monkeypatch.setattr("context_harness.hooks.claude_code.shutil.which", lambda _: None)
+
+    with pytest.raises(RuntimeError, match="uv executable not found"):
+        install_claude_code_hook(settings_path=tmp_path / "settings.json", context_home=tmp_path / "home")

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import shlex
+import shutil
 from pathlib import Path
 
 
@@ -16,6 +17,8 @@ def install_codex_hook(project_root: Path, context_home: Path) -> bool:
     config_path = codex_dir / "config.toml"
     hooks_path = codex_dir / "hooks.json"
     command = (
+        f"cd {shlex.quote(str(_harness_root()))} && "
+        f"{shlex.quote(_uv_executable())} run --with . "
         f"context-harness --context-home {shlex.quote(str(context_home))} "
         "sync codex --latest 1 >/tmp/context-harness-codex.log 2>&1 || true"
     )
@@ -25,6 +28,17 @@ def install_codex_hook(project_root: Path, context_home: Path) -> bool:
     changed = _ensure_codex_hooks_feature(config_path)
     changed = _ensure_stop_command_hook(hooks_path, command) or changed
     return changed
+
+
+def _harness_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _uv_executable() -> str:
+    uv_path = shutil.which("uv")
+    if uv_path is None:
+        raise RuntimeError("uv executable not found; install uv before installing context-harness hooks")
+    return uv_path
 
 
 def _ensure_codex_hooks_feature(config_path: Path) -> bool:

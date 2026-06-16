@@ -18,5 +18,5 @@ dev = [
 pythonpath = ["."]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["flit_core>=3.9,<4"]
+build-backend = "flit_core.buildapi"
