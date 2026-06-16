@@ -39,11 +39,12 @@ def test_load_config_resolves_custom_paths(tmp_path, monkeypatch):
     (tmp_path / "config.toml").write_text(
         f"""
 [sources.codex]
-sessions_dir = "fixtures/codex"
+sessions_dir = "~/context-harness-codex"
 output_dir = "{codex_output_dir}"
 
 [sources.claude-code]
 projects_dir = "fixtures/claude"
+output_dir = "exports/claude"
 
 [memory]
 profile_file = "memory/profile.md"
@@ -54,8 +55,9 @@ global_context_file = "{global_context_file}"
 
     config = load_config(context_home=tmp_path)
 
-    assert config.codex.sessions_dir == tmp_path / "fixtures/codex"
+    assert config.codex.sessions_dir == Path("~/context-harness-codex").expanduser()
     assert config.codex.output_dir == codex_output_dir
     assert config.claude_code.projects_dir == tmp_path / "fixtures/claude"
+    assert config.claude_code.output_dir == tmp_path / "exports/claude"
     assert config.memory.profile_file == tmp_path / "memory/profile.md"
     assert config.memory.global_context_file == global_context_file
