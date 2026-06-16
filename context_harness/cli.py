@@ -3,15 +3,19 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 
+from .init import initialize_context_home
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="context-harness",
         description="Local-first personal AI context loop for Code Agent conversations.",
     )
+    parser.add_argument("--context-home", help="Override context-harness data home")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    subparsers.add_parser("init", help="Initialize context-harness data home")
+    init_parser = subparsers.add_parser("init", help="Initialize context-harness data home")
+    init_parser.add_argument("--install-hooks", action="store_true", help="Print hook installation guidance")
 
     sync_parser = subparsers.add_parser("sync", help="Sync conversations from a source")
     sync_parser.add_argument("source", choices=["codex", "claude-code"])
@@ -32,9 +36,18 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     try:
-        parser.parse_args(argv)
+        args = parser.parse_args(argv)
     except SystemExit as exc:
         return int(exc.code or 0)
+
+    if args.command == "init":
+        result = initialize_context_home(args.context_home)
+        print(f"context home: {result.context_home}")
+        for name, status in result.statuses.items():
+            print(f"{name}: {status}")
+        if args.install_hooks:
+            print("hook installation is not implemented yet")
+
     return 0
 
 
