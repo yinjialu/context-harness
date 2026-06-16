@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from hashlib import sha1
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -44,6 +45,18 @@ def _message_content(payload: dict[str, Any]) -> str:
     return "\n".join(parts)
 
 
+def _event_title(event: dict[str, Any]) -> str:
+    for key in ("title", "summary", "content"):
+        value = event.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+
+    payload = event.get("message")
+    if isinstance(payload, dict):
+        return _message_content(payload)
+    return ""
+
+
 def _read_claude_code_session(path: Path) -> Conversation | None:
     session_id = path.stem
     title = path.stem
@@ -69,10 +82,10 @@ def _read_claude_code_session(path: Path) -> Conversation | None:
         if isinstance(raw_session_id, str) and raw_session_id:
             session_id = raw_session_id
 
-        if event_type == "summary":
-            summary = event.get("summary")
-            if isinstance(summary, str) and summary.strip():
-                title = summary
+        if event_type in {"summary", "ai-title", "custom-title"}:
+            event_title = _event_title(event)
+            if event_title.strip():
+                title = event_title
             created_at = event_time or created_at
             continue
 
@@ -106,11 +119,21 @@ def _read_claude_code_session(path: Path) -> Conversation | None:
     )
 
 
-def _archive_path(output_dir: Path, conversation: Conversation) -> Path:
+def _source_key(projects_dir: Path, source_path: Path, conversation: Conversation) -> str:
+    try:
+        relative_path = source_path.relative_to(projects_dir)
+    except ValueError:
+        relative_path = source_path
+    return f"{conversation.session_id}:{relative_path.as_posix()}"
+
+
+def _archive_path(output_dir: Path, conversation: Conversation, source_path: Path, source_key: str) -> Path:
     date = conversation.created_at.strftime("%Y-%m-%d")
     short_id = _safe_name(conversation.session_id)[:32]
+    source_stem = _safe_name(source_path.stem)[:40]
+    source_digest = sha1(source_key.encode("utf-8")).hexdigest()[:10]
     slug = _safe_name(conversation.title)[:80]
-    name = "-".join(part for part in [date, short_id, slug] if part)
+    name = "-".join(part for part in [date, short_id, source_stem, source_digest, slug] if part)
     return output_dir / f"{name}.md"
 
 
@@ -139,9 +162,10 @@ def sync_claude_code(
         if conversation is None:
             continue
 
-        archive_path = _archive_path(output_dir, conversation)
+        source_key = _source_key(projects_dir, session_file, conversation)
+        archive_path = _archive_path(output_dir, conversation, session_file, source_key)
         message_count = len(conversation.messages)
-        previous = claude_code_state.get(conversation.session_id, {})
+        previous = claude_code_state.get(source_key, {})
 
         if previous.get("message_count") == message_count and archive_path.exists():
             skipped += 1
@@ -149,7 +173,7 @@ def sync_claude_code(
 
         existed = archive_path.exists()
         archive_path.write_text(render_conversation(conversation), encoding="utf-8")
-        claude_code_state[conversation.session_id] = {
+        claude_code_state[source_key] = {
             "archive": archive_path.name,
             "message_count": message_count,
             "source_path": str(session_file),
