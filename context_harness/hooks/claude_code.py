@@ -56,13 +56,23 @@ def _update_existing_command(stop_hooks: list, command: str) -> bool:
     for group in stop_hooks:
         if not isinstance(group, dict):
             continue
-        for hook in group.get("hooks", []):
+        hooks = group.get("hooks", [])
+        if not isinstance(hooks, list):
+            continue
+        retained_hooks = []
+        for hook in hooks:
             if not isinstance(hook, dict):
+                retained_hooks.append(hook)
                 continue
             existing_command = hook.get("command")
             if isinstance(existing_command, str) and _SYNC_MARKER in existing_command:
-                hook.update(_command_hook(command))
-                found = True
+                if not found:
+                    hook.update(_command_hook(command))
+                    retained_hooks.append(hook)
+                    found = True
+                continue
+            retained_hooks.append(hook)
+        group["hooks"] = retained_hooks
     return found
 
 

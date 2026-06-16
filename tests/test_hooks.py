@@ -38,6 +38,21 @@ def test_install_codex_hook_updates_canonical_feature_flag(tmp_path):
     assert sum(line.startswith("hooks") for line in config) == 1
 
 
+def test_install_codex_hook_recognizes_whitespace_feature_section(tmp_path):
+    codex_dir = tmp_path / ".codex"
+    codex_dir.mkdir()
+    (codex_dir / "config.toml").write_text("[ features ]\nhooks = false\n", encoding="utf-8")
+
+    install_codex_hook(project_root=tmp_path, context_home=tmp_path / "home")
+
+    config = _config_lines(codex_dir / "config.toml")
+    assert "[ features ]" in config
+    assert "[features]" not in config
+    assert "hooks = true" in config
+    assert "hooks = false" not in config
+    assert sum(line.strip() in {"[ features ]", "[features]"} for line in config) == 1
+
+
 def test_install_codex_hook_updates_deprecated_feature_flag_without_duplicate(tmp_path):
     codex_dir = tmp_path / ".codex"
     codex_dir.mkdir()
@@ -101,6 +116,60 @@ def test_install_codex_hook_preserves_unrelated_settings_and_updates_old_command
     updated_hook = settings["hooks"]["Stop"][0]["hooks"][1]
     assert updated_hook["timeout"] == 30
     assert "async" not in updated_hook
+
+
+def test_install_codex_hook_collapses_duplicate_context_harness_hooks(tmp_path):
+    codex_dir = tmp_path / ".codex"
+    codex_dir.mkdir()
+    (codex_dir / "hooks.json").write_text(
+        json.dumps(
+            {
+                "hooks": {
+                    "Stop": [
+                        {
+                            "matcher": "",
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": "context-harness --context-home /old-a sync codex --latest 1",
+                                },
+                                {"type": "command", "command": "echo keep"},
+                            ],
+                        },
+                        {
+                            "matcher": "other",
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": "context-harness --context-home /old-b sync codex --latest 1",
+                                },
+                                {
+                                    "type": "command",
+                                    "command": "context-harness --context-home /old-c sync codex --latest 1",
+                                },
+                            ],
+                        },
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    install_codex_hook(project_root=tmp_path, context_home=tmp_path / "home")
+
+    settings = json.loads((codex_dir / "hooks.json").read_text(encoding="utf-8"))
+    stop_hooks = settings["hooks"]["Stop"]
+    commands = [
+        hook["command"]
+        for group in stop_hooks
+        for hook in group["hooks"]
+        if isinstance(hook, dict) and "command" in hook
+    ]
+    context_hooks = [command for command in commands if "sync codex --latest 1" in command]
+    assert len(context_hooks) == 1
+    assert f"--context-home {shlex.quote(str(tmp_path / 'home'))}" in context_hooks[0]
+    assert "echo keep" in commands
 
 
 def test_install_codex_hook_quotes_context_home_with_spaces(tmp_path):
@@ -167,3 +236,55 @@ def test_install_claude_code_hook_preserves_updates_and_quotes_context_home(tmp_
     assert "--context-home /old" not in context_hooks[0]["command"]
     assert context_hooks[0]["timeout"] == 30
     assert context_hooks[0]["async"] is True
+
+
+def test_install_claude_code_hook_collapses_duplicate_context_harness_hooks(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "hooks": {
+                    "Stop": [
+                        {
+                            "matcher": "",
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": "context-harness --context-home /old-a sync claude-code --latest 1",
+                                },
+                                {"type": "command", "command": "echo keep"},
+                            ],
+                        },
+                        {
+                            "matcher": "other",
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": "context-harness --context-home /old-b sync claude-code --latest 1",
+                                },
+                                {
+                                    "type": "command",
+                                    "command": "context-harness --context-home /old-c sync claude-code --latest 1",
+                                },
+                            ],
+                        },
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    install_claude_code_hook(settings_path=settings_path, context_home=tmp_path / "home")
+
+    settings = json.loads(settings_path.read_text(encoding="utf-8"))
+    commands = [
+        hook["command"]
+        for group in settings["hooks"]["Stop"]
+        for hook in group["hooks"]
+        if isinstance(hook, dict) and "command" in hook
+    ]
+    context_hooks = [command for command in commands if "sync claude-code --latest 1" in command]
+    assert len(context_hooks) == 1
+    assert f"--context-home {shlex.quote(str(tmp_path / 'home'))}" in context_hooks[0]
+    assert "echo keep" in commands

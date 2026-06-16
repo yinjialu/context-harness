@@ -7,6 +7,8 @@ from pathlib import Path
 
 
 _SYNC_MARKER = "sync codex --latest 1"
+_FEATURES_SECTION_RE = re.compile(r"^\s*\[\s*features\s*\]\s*$")
+_SECTION_RE = re.compile(r"^\s*\[.*\]\s*$")
 
 
 def install_codex_hook(project_root: Path, context_home: Path) -> bool:
@@ -49,10 +51,10 @@ def _set_feature_flag(content: str, key: str, value: str) -> str:
 
     for index, line in enumerate(lines):
         stripped = line.strip()
-        if stripped == "[features]":
+        if _FEATURES_SECTION_RE.match(line):
             features_start = index
             continue
-        if features_start is not None and index > features_start and stripped.startswith("[") and stripped.endswith("]"):
+        if features_start is not None and index > features_start and _SECTION_RE.match(stripped):
             features_end = index
             break
 
@@ -83,10 +85,10 @@ def _has_feature_flag(content: str, key: str) -> bool:
 
     for index, line in enumerate(lines):
         stripped = line.strip()
-        if stripped == "[features]":
+        if _FEATURES_SECTION_RE.match(line):
             features_start = index
             continue
-        if features_start is not None and index > features_start and stripped.startswith("[") and stripped.endswith("]"):
+        if features_start is not None and index > features_start and _SECTION_RE.match(stripped):
             features_end = index
             break
 
@@ -133,14 +135,24 @@ def _update_existing_command(stop_hooks: list, command: str) -> bool:
     for group in stop_hooks:
         if not isinstance(group, dict):
             continue
-        for hook in group.get("hooks", []):
+        hooks = group.get("hooks", [])
+        if not isinstance(hooks, list):
+            continue
+        retained_hooks = []
+        for hook in hooks:
             if not isinstance(hook, dict):
+                retained_hooks.append(hook)
                 continue
             existing_command = hook.get("command")
             if isinstance(existing_command, str) and _SYNC_MARKER in existing_command:
-                hook.update(_command_hook(command))
-                hook.pop("async", None)
-                found = True
+                if not found:
+                    hook.update(_command_hook(command))
+                    hook.pop("async", None)
+                    retained_hooks.append(hook)
+                    found = True
+                continue
+            retained_hooks.append(hook)
+        group["hooks"] = retained_hooks
     return found
 
 
