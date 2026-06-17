@@ -9,6 +9,7 @@ from pathlib import Path
 from . import __version__
 from .collectors.claude_code import sync_claude_code
 from .collectors.codex import sync_codex
+from .collectors.opencode import sync_opencode
 from .config import load_config, resolve_context_home
 from .hooks.claude_code import install_claude_code_hook
 from .hooks.codex import install_codex_hook, install_codex_user_hook
@@ -29,7 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
     init_parser.add_argument("--install-hooks", action="store_true", help="Print hook installation guidance")
 
     sync_parser = subparsers.add_parser("sync", help="Sync conversations from a source")
-    sync_parser.add_argument("source", choices=["codex", "claude-code"])
+    sync_parser.add_argument("source", choices=["codex", "claude-code", "opencode"])
     sync_mode = sync_parser.add_mutually_exclusive_group()
     sync_mode.add_argument("--latest", type=int)
     sync_mode.add_argument("--all", action="store_true")
@@ -145,6 +146,21 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             else:
                 result = _disabled_result("claude-code", config.claude_code.output_dir)
+            _print_result(result)
+            return 0
+
+        if args.source == "opencode":
+            if config.opencode.enabled:
+                result = sync_opencode(
+                    config.opencode.data_dir,
+                    config.opencode.output_dir,
+                    config.context_home / "state" / "opencode-sync-state.json",
+                    latest=latest,
+                    all_sessions=args.all,
+                    session_path=session_path,
+                )
+            else:
+                result = _disabled_result("opencode", config.opencode.output_dir)
             _print_result(result)
             return 0
 

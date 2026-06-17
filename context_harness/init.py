@@ -20,6 +20,11 @@ enabled = true
 projects_dir = "~/.claude/projects"
 output_dir = "conversations/claude-code"
 
+[sources.opencode]
+enabled = true
+data_dir = "~/.local/share/opencode"
+output_dir = "conversations/opencode"
+
 [memory]
 profile_file = "memory/user_profile.md"
 global_context_file = "global-claude.md"
@@ -52,6 +57,7 @@ def initialize_context_home(context_home: str | Path | None = None) -> InitResul
     for directory in [
         home / "conversations" / "codex",
         home / "conversations" / "claude-code",
+        home / "conversations" / "opencode",
         home / "memory",
         home / "logs",
         home / "state",

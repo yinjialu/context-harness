@@ -8,6 +8,7 @@
 
 - <a href="https://developers.openai.com/codex/app"><img src="https://developers.openai.com/favicon.png" alt="" width="16" height="16" align="absmiddle"></a> [Codex](https://developers.openai.com/codex/app)
 - <a href="https://docs.anthropic.com/en/docs/claude-code/overview"><img src="https://www.anthropic.com/favicon.ico" alt="" width="16" height="16" align="absmiddle"></a> [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
+- [OpenCode](https://opencode.ai/docs/)
 
 项目采用“程序”和“个人数据”分离的设计。这个仓库只放工具本身；你的对话、记忆、日志和同步状态会保存在可配置的数据目录中，例如 `~/.context-harness`。
 
@@ -97,6 +98,14 @@ uv run context-harness --context-home ~/.context-harness sync codex --latest 1
 uv run context-harness --context-home ~/.context-harness sync claude-code --latest 1
 ```
 
+从本机 OpenCode SQLite 数据库同步最近一条 OpenCode conversation：
+
+```bash
+uv run context-harness --context-home ~/.context-harness sync opencode --latest 1
+```
+
+OpenCode 默认读取 `~/.local/share/opencode/opencode.db`。目前 OpenCode 没有和本 CLI 兼容的稳定 stop hook，因此同步方式是手动触发。
+
 安装自动同步 hooks：
 
 ```bash
@@ -113,7 +122,7 @@ CONTEXT_HARNESS_HOME=~/Documents/my-context uv run context-harness init
 uv run context-harness --context-home ~/Documents/my-context init
 ```
 
-`--context-home` 优先级高于 `CONTEXT_HARNESS_HOME`。初始化后可以修改数据目录里的 `config.toml`，自定义 Codex / Claude Code 的原始对话记录位置和归档输出位置。
+`--context-home` 优先级高于 `CONTEXT_HARNESS_HOME`。初始化后可以修改数据目录里的 `config.toml`，自定义 Codex / Claude Code / OpenCode 的原始对话记录位置和归档输出位置。
 
 示例：
 
@@ -127,6 +136,11 @@ output_dir = "conversations/codex"
 enabled = true
 projects_dir = "~/Documents/claude-code-projects"
 output_dir = "conversations/claude-code"
+
+[sources.opencode]
+enabled = true
+data_dir = "~/.local/share/opencode"
+output_dir = "conversations/opencode"
 
 [memory]
 profile_file = "memory/user_profile.md"
@@ -146,12 +160,14 @@ global_context_file = "global-claude.md"
   conversations/
     codex/
     claude-code/
+    opencode/
   memory/
     MEMORY.md
     user_profile.md
   state/
     codex-sync-state.json
     claude-code-sync-state.json
+    opencode-sync-state.json
 ```
 
 其中：
@@ -165,7 +181,7 @@ global_context_file = "global-claude.md"
 
 仓库内置四个 Agent-facing skills：
 
-- `skills/init-context`：初始化数据目录，并按需安装 Codex / Claude Code hooks。
+- `skills/init-context`：初始化数据目录，并按需安装 Codex / Claude Code hooks。OpenCode 同步为手动方式，因为 OpenCode 目前没有兼容的 stop hook。
 - `skills/sync-conversations`：手动触发全量或增量 conversation 同步。
 - `skills/profile-dreamer`：从归档 conversation 中提取个人画像和 memory 候选更新。
 - `skills/adapt-agent-backup`：指导其他 Agent 为新的本地 Code Agent 增加备份适配。
