@@ -14,7 +14,10 @@ MARKETPLACE_NAME = "context-harness"
 MARKETPLACE_DISPLAY_NAME = "Context Harness"
 EXCLUDED_NAMES = {
     ".DS_Store",
+    ".agents",
+    ".claude",
     ".git",
+    ".github",
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
