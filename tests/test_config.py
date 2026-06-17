@@ -31,6 +31,8 @@ def test_load_config_defaults(tmp_path, monkeypatch):
     assert config.codex.output_dir == tmp_path / "conversations" / "codex"
     assert config.claude_code.projects_dir == Path("~/.claude/projects").expanduser()
     assert config.claude_code.output_dir == tmp_path / "conversations" / "claude-code"
+    assert config.hermes_agent.sessions_dir == Path("~/.hermes/sessions").expanduser()
+    assert config.hermes_agent.output_dir == tmp_path / "conversations" / "hermes-agent"
     assert config.memory.global_context_file == tmp_path / "global-claude.md"
 
 
@@ -48,6 +50,10 @@ output_dir = "{codex_output_dir}"
 projects_dir = "fixtures/claude"
 output_dir = "exports/claude"
 
+[sources.hermes-agent]
+sessions_dir = "fixtures/hermes"
+output_dir = "exports/hermes"
+
 [memory]
 profile_file = "memory/profile.md"
 global_context_file = "{global_context_file}"
@@ -59,8 +65,10 @@ global_context_file = "{global_context_file}"
 
     assert config.codex.sessions_dir == Path("~/context-harness-codex").expanduser()
     assert config.codex.output_dir == codex_output_dir
-    assert config.claude_code.projects_dir == tmp_path / "fixtures/claude"
-    assert config.claude_code.output_dir == tmp_path / "exports/claude"
+    assert config.claude_code.projects_dir == tmp_path / "fixtures" / "claude"
+    assert config.claude_code.output_dir == tmp_path / "exports" / "claude"
+    assert config.hermes_agent.sessions_dir == tmp_path / "fixtures" / "hermes"
+    assert config.hermes_agent.output_dir == tmp_path / "exports" / "hermes"
     assert config.memory.profile_file == tmp_path / "memory/profile.md"
     assert config.memory.global_context_file == global_context_file
 
@@ -85,11 +93,15 @@ global_context_file = "{global_context_file}"
             lambda config: config.claude_code.output_dir,
         ),
         (
+            "[sources.hermes-agent]\nsessions_dir = {configured_path}\n",
+            lambda config: config.hermes_agent.sessions_dir,
+        ),
+        (
             "[memory]\nprofile_file = {configured_path}\n",
             lambda config: config.memory.profile_file,
         ),
     ],
-    ids=["source-input", "source-output", "memory"],
+    ids=["source-input", "source-output", "hermes-source-input", "memory"],
 )
 def test_load_config_resolves_path_matrix(
     tmp_path,

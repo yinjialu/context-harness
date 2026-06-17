@@ -1,6 +1,6 @@
 ---
 name: init-context
-description: Initialize a context-harness personal context home, data directories, global context files, and optional Codex/Claude Code hooks. Use when the user asks to initialize context-harness, set up a personal context system, configure automatic Code Agent conversation backup, or repair context-harness hooks.
+description: Initialize a context-harness personal context home, data directories, global context files, and optional Codex/Claude Code hooks. Use when the user asks to initialize context-harness, set up a personal context system, configure automatic Code Agent conversation backup, or repair context-harness hooks. Hermes Agent conversation sync is manual because Hermes Agent does not currently expose a compatible stop hook.
 license: MIT
 ---
 
@@ -39,7 +39,7 @@ Overrides:
 uv run context-harness --context-home <context-home> init
 ```
 
-4. If the user wants automatic backup hooks, run these commands from the same repository root. Supported Code Agents install to user-level config by default. Use `--scope project` to install into the current project, or combine it with `--project-root` to target another project:
+4. If the user wants automatic backup hooks, run these commands from the same repository root. Supported Code Agents install to user-level config by default. Use `--scope project` to install into the current project, or combine it with `--project-root` to target another project. Hermes Agent is initialized as a manual sync source; do not try to install a Hermes hook.
 
 ```bash
 uv run context-harness --context-home <context-home> hooks install codex

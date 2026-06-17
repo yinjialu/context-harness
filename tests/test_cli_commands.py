@@ -170,6 +170,88 @@ output_dir = "conversations/claude-code"
     assert "Newer Session" not in content
 
 
+def test_cli_sync_hermes_agent(tmp_path, capsys):
+    context_home = tmp_path / "home"
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    fixture = Path("tests/fixtures/hermes-agent-session.jsonl").read_text(encoding="utf-8")
+    (sessions / "hermes-agent-session-1.jsonl").write_text(fixture, encoding="utf-8")
+    context_home.mkdir()
+    (context_home / "config.toml").write_text(
+        f"""[sources.hermes-agent]
+enabled = true
+sessions_dir = "{sessions}"
+output_dir = "conversations/hermes-agent"
+""",
+        encoding="utf-8",
+    )
+
+    code = main(["--context-home", str(context_home), "sync", "hermes-agent", "--latest", "1"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "source=hermes-agent" in captured.out
+    assert "checked=1" in captured.out
+    assert "created=1" in captured.out
+    assert list((context_home / "conversations" / "hermes-agent").glob("*.md"))
+
+
+def test_cli_sync_hermes_agent_respects_disabled_source(tmp_path, capsys):
+    context_home = tmp_path / "home"
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    fixture = Path("tests/fixtures/hermes-agent-session.jsonl").read_text(encoding="utf-8")
+    (sessions / "hermes-agent-session-1.jsonl").write_text(fixture, encoding="utf-8")
+    context_home.mkdir()
+    (context_home / "config.toml").write_text(
+        f"""[sources.hermes-agent]
+enabled = false
+sessions_dir = "{sessions}"
+output_dir = "conversations/hermes-agent"
+""",
+        encoding="utf-8",
+    )
+
+    code = main(["--context-home", str(context_home), "sync", "hermes-agent", "--latest", "1"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "source=hermes-agent checked=0 created=0 updated=0 skipped=0" in captured.out
+    assert not (context_home / "conversations" / "hermes-agent").exists()
+
+
+def test_cli_sync_hermes_agent_hook_stdin_uses_transcript_path(tmp_path, capsys, monkeypatch):
+    context_home = tmp_path / "home"
+    sessions = tmp_path / "sessions"
+    target = sessions / "target.jsonl"
+    newer = sessions / "newer.jsonl"
+    fixture = Path("tests/fixtures/hermes-agent-session.jsonl").read_text(encoding="utf-8")
+    target.parent.mkdir()
+    target.write_text(fixture.replace("Context Harness", "Target Session"), encoding="utf-8")
+    newer.write_text(fixture.replace("Context Harness", "Newer Session"), encoding="utf-8")
+    newer.touch()
+    context_home.mkdir()
+    (context_home / "config.toml").write_text(
+        f"""[sources.hermes-agent]
+enabled = true
+sessions_dir = "{sessions}"
+output_dir = "conversations/hermes-agent"
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(sys, "stdin", StringIO(json.dumps({"transcript_path": str(target)})))
+
+    code = main(["--context-home", str(context_home), "sync", "hermes-agent", "--hook-stdin"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "checked=1" in captured.out
+    archive = next((context_home / "conversations" / "hermes-agent").glob("*.md"))
+    content = archive.read_text(encoding="utf-8")
+    assert "Target Session" in content
+    assert "Newer Session" not in content
+
+
 def test_cli_hooks_install_codex_writes_user_config_by_default(tmp_path, monkeypatch):
     context_home = tmp_path / "home"
     codex_home = tmp_path / ".codex"

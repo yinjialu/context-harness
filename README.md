@@ -8,6 +8,7 @@ Supported local AI coding assistants:
 
 - <a href="https://developers.openai.com/codex/app"><img src="https://developers.openai.com/favicon.png" alt="" width="16" height="16" align="absmiddle"></a> [Codex](https://developers.openai.com/codex/app)
 - <a href="https://docs.anthropic.com/en/docs/claude-code/overview"><img src="https://www.anthropic.com/favicon.ico" alt="" width="16" height="16" align="absmiddle"></a> [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
+- [Hermes Agent](https://hermes-agent.nousresearch.com/docs)
 
 The project keeps the tool itself separate from your personal data. This repository contains the program; your conversations, memory, logs, and sync state live in a configurable data directory such as `~/.context-harness`.
 
@@ -97,6 +98,20 @@ Sync the latest Claude Code conversation:
 uv run context-harness --context-home ~/.context-harness sync claude-code --latest 1
 ```
 
+Sync the latest Hermes Agent export or session snapshot:
+
+```bash
+uv run context-harness --context-home ~/.context-harness sync hermes-agent --latest 1
+```
+
+Hermes Agent does not currently expose a stop hook compatible with this CLI. For canonical Hermes history, export sessions first:
+
+```bash
+mkdir -p ~/.hermes/sessions
+hermes sessions export ~/.hermes/sessions/hermes-export.jsonl
+uv run context-harness --context-home ~/.context-harness sync hermes-agent --latest 1
+```
+
 Install automatic sync hooks:
 
 ```bash
@@ -113,7 +128,7 @@ CONTEXT_HARNESS_HOME=~/Documents/my-context uv run context-harness init
 uv run context-harness --context-home ~/Documents/my-context init
 ```
 
-`--context-home` takes precedence over `CONTEXT_HARNESS_HOME`. After initialization, edit `config.toml` in the data home to customize Codex / Claude Code source paths and archive output paths.
+`--context-home` takes precedence over `CONTEXT_HARNESS_HOME`. After initialization, edit `config.toml` in the data home to customize Codex / Claude Code / Hermes Agent source paths and archive output paths.
 
 Example:
 
@@ -127,6 +142,11 @@ output_dir = "conversations/codex"
 enabled = true
 projects_dir = "~/Documents/claude-code-projects"
 output_dir = "conversations/claude-code"
+
+[sources.hermes-agent]
+enabled = true
+sessions_dir = "~/.hermes/sessions"
+output_dir = "conversations/hermes-agent"
 
 [memory]
 profile_file = "memory/user_profile.md"
@@ -146,12 +166,14 @@ After initialization, the data home looks roughly like this:
   conversations/
     codex/
     claude-code/
+    hermes-agent/
   memory/
     MEMORY.md
     user_profile.md
   state/
     codex-sync-state.json
     claude-code-sync-state.json
+    hermes-agent-sync-state.json
 ```
 
 - `conversations/` stores Markdown archives rendered from Code Agent transcripts.
@@ -163,7 +185,7 @@ After initialization, the data home looks roughly like this:
 
 This repository includes four Agent-facing skills:
 
-- `skills/init-context`: initialize the data home and optionally install Codex / Claude Code hooks.
+- `skills/init-context`: initialize the data home and optionally install Codex / Claude Code hooks. Hermes Agent sync is manual because Hermes does not currently expose a compatible stop hook.
 - `skills/sync-conversations`: manually run full or incremental conversation sync.
 - `skills/profile-dreamer`: extract profile and memory update proposals from archived conversations.
 - `skills/adapt-agent-backup`: guide another Agent through adding a new local Code Agent backup adapter.
@@ -172,12 +194,12 @@ The skills describe Agent workflows. The CLI owns the actual behavior, so busine
 
 ### Copy-Ready Prompt: Add Agent Backup Support
 
-Copy this into any coding Agent. Replace `<target-agent>` with the Agent you want to support:
+Copy this into the coding Agent you want `context-harness` to support:
 
 ```text
 Please clone and inspect https://github.com/yinjialu/context-harness.
 
-Use the repository's `adapt-agent-backup` skill to add local conversation backup support for <target-agent>, then submit a PR.
+Use the repository's `adapt-agent-backup` skill to add local conversation backup support for the coding Agent you are currently running in, then submit a PR.
 ```
 
 ## Codex Plugin
