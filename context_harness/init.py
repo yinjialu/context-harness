@@ -61,6 +61,44 @@ def _default_config(home: Path) -> str:
     return DEFAULT_CONFIG_TEMPLATE.format(context_home=json.dumps(str(home)))
 
 
+def _ensure_config_context_home(path: Path, home: Path, statuses: dict[str, str]) -> None:
+    if not path.exists():
+        _write_if_missing(path, _default_config(home), statuses)
+        return
+
+    desired_line = f"context_home = {json.dumps(str(home))}"
+    lines = path.read_text(encoding="utf-8").splitlines()
+    in_paths = False
+    paths_header_index: int | None = None
+    context_home_index: int | None = None
+
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            in_paths = stripped == "[paths]"
+            if in_paths:
+                paths_header_index = index
+            continue
+        if in_paths and stripped.startswith("context_home"):
+            context_home_index = index
+            break
+
+    if context_home_index is not None:
+        if lines[context_home_index].strip() == desired_line:
+            statuses[path.name] = "unchanged"
+            return
+        lines[context_home_index] = desired_line
+    elif paths_header_index is not None:
+        lines.insert(paths_header_index + 1, desired_line)
+    else:
+        if lines and lines[-1].strip():
+            lines.append("")
+        lines.extend(["[paths]", desired_line])
+
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    statuses[path.name] = "updated"
+
+
 def _remove_managed_blocks(content: str, start_marker: str, end_marker: str) -> str:
     lines = content.splitlines()
     cleaned: list[str] = []
@@ -183,7 +221,7 @@ def initialize_context_home(
     ]:
         directory.mkdir(parents=True, exist_ok=True)
 
-    _write_if_missing(home / "config.toml", _default_config(home), statuses)
+    _ensure_config_context_home(home / "config.toml", home, statuses)
     _write_if_missing(home / "memory" / "MEMORY.md", "# Memory\n", statuses)
     _write_if_missing(home / "memory" / "user_profile.md", "# User Profile\n", statuses)
     global_context_file = home / "global-claude.md"

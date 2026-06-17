@@ -35,6 +35,34 @@ def test_initialize_context_home_is_idempotent(tmp_path):
     assert second.statuses["AGENTS.md"] == "unchanged"
 
 
+def test_initialize_context_home_repairs_stale_config_context_home(tmp_path):
+    paths = _agent_paths(tmp_path)
+    config_path = tmp_path / "config.toml"
+    tmp_path.mkdir(exist_ok=True)
+    config_path.write_text(
+        """[paths]
+context_home = "/Users/jialu/.context-harness"
+
+[sources.codex]
+enabled = false
+sessions_dir = "~/custom-codex"
+output_dir = "conversations/codex"
+""",
+        encoding="utf-8",
+    )
+
+    result = initialize_context_home(tmp_path, **paths)
+    second = initialize_context_home(tmp_path, **paths)
+
+    content = config_path.read_text(encoding="utf-8")
+    assert result.statuses["config.toml"] == "updated"
+    assert second.statuses["config.toml"] == "unchanged"
+    assert f'context_home = "{tmp_path.resolve()}"' in content
+    assert 'context_home = "/Users/jialu/.context-harness"' not in content
+    assert "enabled = false" in content
+    assert 'sessions_dir = "~/custom-codex"' in content
+
+
 def test_initialize_context_home_links_claude_md(tmp_path):
     paths = _agent_paths(tmp_path)
     result = initialize_context_home(tmp_path, **paths)
