@@ -229,7 +229,7 @@ def test_sync_opencode_bounds_archive_filename_for_long_session_id(tmp_path):
     result = sync_opencode(data_dir, tmp_path / "out", tmp_path / "state.json", latest=1)
 
     assert result.created == 1
-    assert (tmp_path / "out" / "20260616_ses_with.md").exists()
+    assert (tmp_path / "out" / "20260616_ses_with_a_long_.md").exists()
 
 
 def test_sync_opencode_removes_stale_archive_when_filename_scheme_changes(tmp_path):
@@ -251,4 +251,4 @@ def test_sync_opencode_removes_stale_archive_when_filename_scheme_changes(tmp_pa
 
     assert result.updated == 1
     assert not old_archive.exists()
-    assert (output_dir / "20260616_ses_stal.md").exists()
+    assert (output_dir / "20260616_ses_stale.md").exists()

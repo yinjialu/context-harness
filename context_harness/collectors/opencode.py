@@ -160,7 +160,7 @@ def _read_opencode_session(db_path: Path, session_id: str) -> Conversation | Non
 
 def _archive_path(output_dir: Path, conversation: Conversation) -> Path:
     date = local_compact_date(conversation.created_at)
-    short_id = _safe_name(conversation.session_id)[:8]
+    short_id = _safe_name(conversation.session_id)[:16]
     return output_dir / f"{date}_{short_id}.md"
 
 
