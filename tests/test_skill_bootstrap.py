@@ -27,6 +27,21 @@ def test_bootstrap_default_ref_matches_project_version() -> None:
     assert f'runtime_ref="${{CONTEXT_HARNESS_REF:-v{version}}}"' in script
 
 
+def test_install_script_default_ref_matches_project_version() -> None:
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    version = pyproject["project"]["version"]
+    script = (ROOT / "scripts" / "install.sh").read_text(encoding="utf-8")
+
+    assert f'runtime_ref="${{CONTEXT_HARNESS_REF:-v{version}}}"' in script
+
+
+def test_install_script_is_executable() -> None:
+    script = ROOT / "scripts" / "install.sh"
+
+    assert script.exists()
+    assert script.stat().st_mode & stat.S_IXUSR
+
+
 def test_skills_document_runtime_bootstrap() -> None:
     for name in SKILL_NAMES:
         skill_doc = (ROOT / "skills" / name / "SKILL.md").read_text(encoding="utf-8")

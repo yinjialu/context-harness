@@ -2,14 +2,65 @@
 
 [中文文档](README.zh-CN.md)
 
-`context-harness` is a local-first personal AI context loop for Code Agent conversations.
+`context-harness` is a local-first personal AI context tool. It archives conversations from your local AI coding assistants so they can be synced, searched, and turned into useful memory later.
 
-V1 focuses on two local Code Agent sources:
+V1 currently supports two common local AI coding assistants:
 
 - Codex
 - Claude Code
 
-The project separates the mechanism layer from the user data layer. This repository contains only the CLI, skills, hook installers, templates, docs, and tests. Conversations, memory, logs, and sync state live in a configurable data directory such as `~/.context-harness`.
+The project keeps the tool itself separate from your personal data. This repository contains the program; your conversations, memory, logs, and sync state live in a configurable data directory such as `~/.context-harness`.
+
+## Simple Install
+
+If you just want to get it working, you do not need to understand plugins, skills, or command-line internals first. Start with one of these two paths. After installation, you will have:
+
+- Personal data folder: `~/.context-harness`
+- Program runtime folder: `~/.local/share/context-harness`
+- Automatic sync settings for Codex / Claude Code when the installer detects them, or when you explicitly request them
+
+### Option A: Copy One Command
+
+On macOS / Linux, paste this into Terminal:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yinjialu/context-harness/main/scripts/install.sh | bash
+```
+
+If you only want to turn on automatic sync for one AI coding assistant, use:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yinjialu/context-harness/main/scripts/install.sh | env CONTEXT_HARNESS_AGENTS=codex bash
+curl -fsSL https://raw.githubusercontent.com/yinjialu/context-harness/main/scripts/install.sh | env CONTEXT_HARNESS_AGENTS=claude-code bash
+```
+
+The installer prepares `uv`, downloads or updates `context-harness`, initializes the data folder, and turns on the selected sync settings. If Codex asks you to approve the sync hook after installation, run `/hooks` in Codex and approve `context-harness`.
+
+### Option B: Ask Your Local AI Coding Assistant
+
+If you do not want to manage the terminal steps yourself, copy this prompt into your local Codex, Claude Code, or another AI coding assistant:
+
+```text
+Please install context-harness on this machine so it can sync and archive my local AI coding assistant conversations.
+
+Please run this one-line installer first:
+curl -fsSL https://raw.githubusercontent.com/yinjialu/context-harness/main/scripts/install.sh | bash
+
+After installation, tell me:
+1. Whether the personal data folder was created at ~/.context-harness
+2. Whether the program runtime folder is ready at ~/.local/share/context-harness
+3. Which automatic sync settings were turned on for Codex / Claude Code
+4. If Codex needs hook trust approval, remind me to run /hooks and approve context-harness
+
+Do not store my conversations, memory, or sync state inside the context-harness source repository.
+```
+
+If you already know that you only use Codex or only use Claude Code, change the installer command to:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yinjialu/context-harness/main/scripts/install.sh | env CONTEXT_HARNESS_AGENTS=codex bash
+curl -fsSL https://raw.githubusercontent.com/yinjialu/context-harness/main/scripts/install.sh | env CONTEXT_HARNESS_AGENTS=claude-code bash
+```
 
 ## Quick Start
 

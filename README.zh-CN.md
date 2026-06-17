@@ -2,14 +2,65 @@
 
 [English](README.md)
 
-`context-harness` 是一个 local-first 的个人 AI 上下文闭环框架。
+`context-harness` 是一个本地优先的个人 AI 上下文工具。它可以把你在本机 AI 编程助手里的对话归档下来，方便之后同步、检索和整理记忆。
 
-V1 聚焦两个本地 Code Agent 数据源：
+V1 先支持两个常见的本地 AI 编程助手：
 
 - Codex
 - Claude Code
 
-项目采用“机制层”和“用户数据层”分离的设计。仓库只维护 CLI、skills、hook installers、templates、docs 和 tests；conversations、memory、logs、sync state 等用户数据放在可配置的数据目录中，例如 `~/.context-harness`。
+项目采用“程序”和“个人数据”分离的设计。这个仓库只放工具本身；你的对话、记忆、日志和同步状态会保存在可配置的数据目录中，例如 `~/.context-harness`。
+
+## 普通用户快速安装
+
+如果你只是想把它装起来用，不需要先理解插件、skills 或命令行细节。优先用下面两种方式之一。安装完成后，你会得到：
+
+- 个人数据目录：`~/.context-harness`
+- 程序运行目录：`~/.local/share/context-harness`
+- Codex / Claude Code 的自动同步设置（安装脚本会自动检测，也可以手动指定）
+
+### 方式 A：复制一行命令
+
+macOS / Linux 用户可以直接复制这一行到终端（Terminal）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yinjialu/context-harness/main/scripts/install.sh | bash
+```
+
+如果你只想给某一个 AI 编程助手开启自动同步，可以用：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yinjialu/context-harness/main/scripts/install.sh | env CONTEXT_HARNESS_AGENTS=codex bash
+curl -fsSL https://raw.githubusercontent.com/yinjialu/context-harness/main/scripts/install.sh | env CONTEXT_HARNESS_AGENTS=claude-code bash
+```
+
+安装脚本会自动准备 `uv`、下载或更新 `context-harness`、初始化数据目录，并开启对应的自动同步设置。Codex 安装后如果提示需要信任同步 hook，请在 Codex 里运行 `/hooks`，然后确认 `context-harness`。
+
+### 方式 B：把这段话交给本地 AI 编程助手
+
+如果你不想自己打开终端判断环境，可以把下面这段话复制给本机的 Codex、Claude Code 或其他 AI 编程助手：
+
+```text
+请帮我在本机安装 context-harness，用来同步和归档我的本地 AI 编程助手对话。
+
+请优先运行这个一键安装脚本：
+curl -fsSL https://raw.githubusercontent.com/yinjialu/context-harness/main/scripts/install.sh | bash
+
+安装完成后，请告诉我：
+1. 个人数据目录是否已经创建在 ~/.context-harness
+2. 程序运行目录是否已经准备在 ~/.local/share/context-harness
+3. 已经为 Codex / Claude Code 开启了哪些自动同步设置
+4. 如果 Codex 需要我信任 hook，请提醒我运行 /hooks 并确认 context-harness
+
+不要把我的对话、记忆或同步状态放进 context-harness 源码仓库里。
+```
+
+如果你已经知道自己只使用 Codex 或只使用 Claude Code，可以把脚本命令改成：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yinjialu/context-harness/main/scripts/install.sh | env CONTEXT_HARNESS_AGENTS=codex bash
+curl -fsSL https://raw.githubusercontent.com/yinjialu/context-harness/main/scripts/install.sh | env CONTEXT_HARNESS_AGENTS=claude-code bash
+```
 
 ## 快速开始
 
