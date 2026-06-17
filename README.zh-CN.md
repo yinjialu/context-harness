@@ -167,10 +167,45 @@ gh skill publish skills --dry-run
 发布 tagged release：
 
 ```bash
-gh skill publish skills --tag v0.1.0
+gh skill publish skills --tag v0.1.1
 ```
 
 `skills/` 是 canonical publish target。直接在仓库根目录运行 `gh skill publish` 可能会提示 `.agents/skills` 和 `.claude/skills`；这两组目录是我们特意保留的 repo-local discovery symlink，用于让 Codex 和 Claude Code 打开仓库时自动发现 skills。
+
+## Skill-only Bootstrap
+
+只安装 skills 不会把完整 CLI 仓库复制到 Agent 的 skill 目录。为了解决这个缺口，每个 skill 都内置了 `scripts/bootstrap.sh`。
+
+Agent 执行 context-harness skill 时，应该先运行：
+
+```bash
+runtime_dir="$(bash scripts/bootstrap.sh)"
+cd "$runtime_dir"
+```
+
+bootstrap 脚本会：
+
+- clone 或更新 runtime repo 到 `~/.local/share/context-harness`
+- 默认 checkout `v0.1.1`
+- 执行 `uv sync`
+- 通过 stdout 输出 runtime repo 路径
+
+之后 Agent 就可以正常执行 CLI 命令：
+
+```bash
+uv run context-harness --context-home ~/.context-harness init
+uv run context-harness --context-home ~/.context-harness sync codex --latest 1
+```
+
+fork 用户可以覆盖 runtime 来源：
+
+```bash
+CONTEXT_HARNESS_REPO_URL=https://github.com/<owner>/<repo>.git \
+CONTEXT_HARNESS_REF=main \
+bash scripts/bootstrap.sh
+```
+
+也可以通过 `CONTEXT_HARNESS_RUNTIME_DIR` 自定义 runtime checkout 位置。
 
 ## Hooks
 

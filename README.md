@@ -165,10 +165,45 @@ gh skill publish skills --dry-run
 Publish a tagged release:
 
 ```bash
-gh skill publish skills --tag v0.1.0
+gh skill publish skills --tag v0.1.1
 ```
 
 `skills/` is the canonical publish target. Running `gh skill publish` from the repository root may warn about `.agents/skills` and `.claude/skills`; those directories are intentionally kept as repo-local discovery symlinks for Codex and Claude Code.
+
+## Skill-Only Bootstrap
+
+Installing the skills does not copy the whole CLI repository into the agent's skill directory. To close that gap, each skill includes `scripts/bootstrap.sh`.
+
+When an Agent runs a context-harness skill, it should first run:
+
+```bash
+runtime_dir="$(bash scripts/bootstrap.sh)"
+cd "$runtime_dir"
+```
+
+The bootstrap script:
+
+- clones or updates the runtime repository at `~/.local/share/context-harness`
+- checks out `v0.1.1` by default
+- runs `uv sync`
+- prints the runtime repository path on stdout
+
+After that, the Agent can run normal CLI commands:
+
+```bash
+uv run context-harness --context-home ~/.context-harness init
+uv run context-harness --context-home ~/.context-harness sync codex --latest 1
+```
+
+Forks can override the runtime source:
+
+```bash
+CONTEXT_HARNESS_REPO_URL=https://github.com/<owner>/<repo>.git \
+CONTEXT_HARNESS_REF=main \
+bash scripts/bootstrap.sh
+```
+
+You can also set `CONTEXT_HARNESS_RUNTIME_DIR` to choose a custom runtime checkout path.
 
 ## Hooks
 
