@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 
 
-_SYNC_MARKER = "sync claude-code"
+_SYNC_MARKERS = ("sync claude-code", "extract_conversations.py")
 
 
 def install_claude_code_hook(settings_path: Path, context_home: Path) -> bool:
@@ -79,7 +79,7 @@ def _update_existing_command(stop_hooks: list, command: str) -> bool:
                 retained_hooks.append(hook)
                 continue
             existing_command = hook.get("command")
-            if isinstance(existing_command, str) and _SYNC_MARKER in existing_command:
+            if isinstance(existing_command, str) and _is_sync_command(existing_command):
                 if not found:
                     hook.update(_command_hook(command))
                     retained_hooks.append(hook)
@@ -88,6 +88,10 @@ def _update_existing_command(stop_hooks: list, command: str) -> bool:
             retained_hooks.append(hook)
         group["hooks"] = retained_hooks
     return found
+
+
+def _is_sync_command(command: str) -> bool:
+    return any(marker in command for marker in _SYNC_MARKERS)
 
 
 def _first_hook_group(stop_hooks: list) -> dict:

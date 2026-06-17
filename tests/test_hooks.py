@@ -249,6 +249,41 @@ def test_install_codex_hook_collapses_duplicate_context_harness_hooks(tmp_path):
     assert "echo keep" in commands
 
 
+def test_install_codex_hook_replaces_legacy_extract_script_hook(tmp_path):
+    codex_dir = tmp_path / ".codex"
+    codex_dir.mkdir()
+    (codex_dir / "hooks.json").write_text(
+        json.dumps(
+            {
+                "hooks": {
+                    "Stop": [
+                        {
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": "cd /old && python3 .agents/skills/sync-conversations/scripts/extract_codex.py --latest 1 || true",
+                                    "timeout": 30,
+                                    "statusMessage": "Syncing Codex conversation archive",
+                                }
+                            ]
+                        }
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    install_codex_hook(project_root=tmp_path, context_home=tmp_path / "home")
+
+    settings = json.loads((codex_dir / "hooks.json").read_text(encoding="utf-8"))
+    stop_hooks = settings["hooks"]["Stop"][0]["hooks"]
+    assert len(stop_hooks) == 1
+    assert "sync codex --hook-stdin" in stop_hooks[0]["command"]
+    assert "extract_codex.py" not in stop_hooks[0]["command"]
+    assert "statusMessage" in stop_hooks[0]
+
+
 def test_install_codex_hook_quotes_context_home_with_spaces(tmp_path):
     context_home = tmp_path / "home with spaces"
 
@@ -366,6 +401,40 @@ def test_install_claude_code_hook_collapses_duplicate_context_harness_hooks(tmp_
     assert len(context_hooks) == 1
     assert f"--context-home {shlex.quote(str(tmp_path / 'home'))}" in context_hooks[0]
     assert "echo keep" in commands
+
+
+def test_install_claude_code_hook_replaces_legacy_extract_script_hook(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "hooks": {
+                    "Stop": [
+                        {
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": "python3 /old/.agents/skills/sync-conversations/scripts/extract_conversations.py --latest 1 || true",
+                                    "timeout": 30,
+                                    "async": True,
+                                }
+                            ]
+                        }
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    install_claude_code_hook(settings_path=settings_path, context_home=tmp_path / "home")
+
+    settings = json.loads(settings_path.read_text(encoding="utf-8"))
+    stop_hooks = settings["hooks"]["Stop"][0]["hooks"]
+    assert len(stop_hooks) == 1
+    assert "sync claude-code --hook-stdin" in stop_hooks[0]["command"]
+    assert "extract_conversations.py" not in stop_hooks[0]["command"]
+    assert stop_hooks[0]["async"] is True
 
 
 def test_generated_codex_hook_command_runs_from_non_repo_cwd(tmp_path):
