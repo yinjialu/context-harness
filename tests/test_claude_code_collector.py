@@ -239,6 +239,29 @@ def test_sync_claude_code_removes_stale_archive_when_filename_scheme_changes(tmp
     assert (output_dir / "20260616_session-.md").exists()
 
 
+def test_sync_claude_code_uses_first_title_timestamp_for_filename(tmp_path):
+    projects_dir = tmp_path / "projects"
+    session = projects_dir / "-tmp-project" / "333d2d3f-8218-49a9-b99b-37987f3ba96f.jsonl"
+    session.parent.mkdir(parents=True)
+    session.write_text(
+        "\n".join(
+            [
+                '{"sessionId":"333d2d3f-8218-49a9-b99b-37987f3ba96f","timestamp":"2026-06-16T13:00:00Z","type":"summary","summary":"first"}',
+                '{"sessionId":"333d2d3f-8218-49a9-b99b-37987f3ba96f","timestamp":"2026-06-16T13:01:00Z","type":"user","message":{"role":"user","content":"hello"}}',
+                '{"sessionId":"333d2d3f-8218-49a9-b99b-37987f3ba96f","timestamp":"2026-06-17T01:00:00Z","type":"summary","summary":"later"}',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = sync_claude_code(projects_dir, tmp_path / "out", tmp_path / "state.json", latest=1)
+
+    assert result.created == 1
+    assert (tmp_path / "out" / "20260616_333d2d3f.md").exists()
+    assert not (tmp_path / "out" / "20260617_333d2d3f.md").exists()
+
+
 def test_sync_claude_code_uses_title_events(tmp_path):
     projects_dir = tmp_path / "projects"
     projects_dir.mkdir()

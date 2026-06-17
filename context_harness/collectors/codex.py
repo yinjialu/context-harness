@@ -81,7 +81,8 @@ def _read_codex_session(path: Path) -> Conversation | None:
             session_id = str(payload.get("id") or session_id)
             title = str(payload.get("title") or title)
             cwd = str(payload.get("cwd") or "")
-            created_at = event_time or created_at
+            if created_at is None:
+                created_at = _parse_time(payload.get("timestamp")) or event_time
             continue
 
         message_payload = _message_payload(event)

@@ -86,7 +86,8 @@ def _read_claude_code_session(path: Path) -> Conversation | None:
             event_title = _event_title(event)
             if event_title.strip():
                 title = event_title
-            created_at = event_time or created_at
+            if created_at is None:
+                created_at = event_time
             continue
 
         if event_type not in {"user", "assistant"}:

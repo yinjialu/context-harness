@@ -163,6 +163,29 @@ def test_sync_codex_removes_stale_archive_when_filename_scheme_changes(tmp_path)
     assert (output_dir / "20260616_session-.md").exists()
 
 
+def test_sync_codex_uses_first_session_meta_timestamp_for_filename(tmp_path):
+    sessions_dir = tmp_path / "sessions"
+    session = sessions_dir / "rollout-session-id.jsonl"
+    session.parent.mkdir(parents=True)
+    session.write_text(
+        "\n".join(
+            [
+                '{"timestamp":"2026-06-16T13:00:00Z","type":"session_meta","payload":{"id":"019ed088-ec9c-7cf1-a4bc-9fa35ad3623f","timestamp":"2026-06-16T13:00:00Z"}}',
+                '{"timestamp":"2026-06-16T13:01:00Z","type":"event_msg","payload":{"role":"user","content":"first"}}',
+                '{"timestamp":"2026-06-17T01:00:00Z","type":"session_meta","payload":{"id":"019ed088-ec9c-7cf1-a4bc-9fa35ad3623f","timestamp":"2026-06-17T01:00:00Z"}}',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = sync_codex(sessions_dir, tmp_path / "out", tmp_path / "state.json", latest=1)
+
+    assert result.created == 1
+    assert (tmp_path / "out" / "20260616_019ed088.md").exists()
+    assert not (tmp_path / "out" / "20260617_019ed088.md").exists()
+
+
 def test_sync_codex_counts_noise_files_as_checked_without_creating_archive(tmp_path):
     sessions_dir = tmp_path / "sessions"
     sessions_dir.mkdir()
