@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from context_harness.datetime_utils import local_compact_date
 from context_harness.markdown import render_conversation
 from context_harness.models import Conversation, Message, SyncResult
 from context_harness.state import read_state, write_state
@@ -116,7 +117,7 @@ def _read_codex_session(path: Path) -> Conversation | None:
 
 
 def _archive_path(output_dir: Path, conversation: Conversation) -> Path:
-    date = conversation.created_at.strftime("%Y%m%d")
+    date = local_compact_date(conversation.created_at)
     short_id = _safe_name(conversation.session_id)[:8]
     return output_dir / f"{date}_{short_id}.md"
 

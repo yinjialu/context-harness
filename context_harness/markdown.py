@@ -2,17 +2,18 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from .datetime_utils import local_date, local_isoformat, local_time
 from .models import Conversation, Message
 
 
 def _date(value: datetime) -> str:
-    return value.strftime("%Y-%m-%d")
+    return local_date(value)
 
 
 def _time(value: datetime | None) -> str:
     if value is None:
         return ""
-    return " " + value.strftime("%H:%M")
+    return " " + local_time(value)
 
 
 def _role_label(role: str) -> str:
@@ -34,7 +35,7 @@ def render_conversation(conversation: Conversation) -> str:
         f"- **Source**: {conversation.source}",
         f"- **Session**: `{conversation.session_id}`",
         f"- **Messages**: {len(conversation.messages)}",
-        f"- **Synced At**: {conversation.synced_at.isoformat()}",
+        f"- **Synced At**: {local_isoformat(conversation.synced_at)}",
     ]
     for key, value in conversation.metadata.items():
         lines.append(f"- **{key}**: {value}")

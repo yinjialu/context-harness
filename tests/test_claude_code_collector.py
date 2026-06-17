@@ -262,6 +262,28 @@ def test_sync_claude_code_uses_first_title_timestamp_for_filename(tmp_path):
     assert not (tmp_path / "out" / "20260617_333d2d3f.md").exists()
 
 
+def test_sync_claude_code_uses_local_date_for_archive_filename(tmp_path, set_timezone):
+    set_timezone("Asia/Shanghai")
+    projects_dir = tmp_path / "projects"
+    session = projects_dir / "-tmp-project" / "local-date.jsonl"
+    session.parent.mkdir(parents=True)
+    session.write_text(
+        "\n".join(
+            [
+                '{"sessionId":"local-date","timestamp":"2026-06-16T20:00:00Z","type":"summary","summary":"Local Date"}',
+                '{"sessionId":"local-date","timestamp":"2026-06-16T20:01:00Z","type":"user","message":{"role":"user","content":"hello"}}',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = sync_claude_code(projects_dir, tmp_path / "out", tmp_path / "state.json", latest=1)
+
+    assert result.created == 1
+    assert (tmp_path / "out" / "20260617_local-da.md").exists()
+
+
 def test_sync_claude_code_uses_title_events(tmp_path):
     projects_dir = tmp_path / "projects"
     projects_dir.mkdir()

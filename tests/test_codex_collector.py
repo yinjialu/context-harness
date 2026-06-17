@@ -186,6 +186,28 @@ def test_sync_codex_uses_first_session_meta_timestamp_for_filename(tmp_path):
     assert not (tmp_path / "out" / "20260617_019ed088.md").exists()
 
 
+def test_sync_codex_uses_local_date_for_archive_filename(tmp_path, set_timezone):
+    set_timezone("Asia/Shanghai")
+    sessions_dir = tmp_path / "sessions"
+    session = sessions_dir / "local-date.jsonl"
+    session.parent.mkdir(parents=True)
+    session.write_text(
+        "\n".join(
+            [
+                '{"timestamp":"2026-06-16T20:00:00Z","type":"session_meta","payload":{"id":"local-date","timestamp":"2026-06-16T20:00:00Z"}}',
+                '{"timestamp":"2026-06-16T20:01:00Z","type":"event_msg","payload":{"role":"user","content":"hello"}}',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = sync_codex(sessions_dir, tmp_path / "out", tmp_path / "state.json", latest=1)
+
+    assert result.created == 1
+    assert (tmp_path / "out" / "20260617_local-da.md").exists()
+
+
 def test_sync_codex_counts_noise_files_as_checked_without_creating_archive(tmp_path):
     sessions_dir = tmp_path / "sessions"
     sessions_dir.mkdir()

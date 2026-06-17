@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from context_harness.datetime_utils import local_compact_date
 from context_harness.markdown import render_conversation
 from context_harness.models import Conversation, Message, SyncResult
 from context_harness.state import read_state, write_state
@@ -136,7 +137,7 @@ def _archive_path(
     source_key: str,
     previous_archive: str | None = None,
 ) -> Path:
-    date = conversation.created_at.strftime("%Y%m%d")
+    date = local_compact_date(conversation.created_at)
     short_id = _safe_name(conversation.session_id)[:8]
     base_path = output_dir / f"{date}_{short_id}.md"
     if previous_archive == base_path.name or not base_path.exists():

@@ -165,7 +165,7 @@ gh skill publish skills --dry-run
 Publish a tagged release:
 
 ```bash
-gh skill publish skills --tag v0.1.6
+gh skill publish skills --tag v0.1.7
 ```
 
 `skills/` is the canonical publish target. Running `gh skill publish` from the repository root may warn about `.agents/skills` and `.claude/skills`; those directories are intentionally kept as repo-local discovery symlinks for Codex and Claude Code.
@@ -184,7 +184,7 @@ cd "$runtime_dir"
 The bootstrap script:
 
 - clones or updates the runtime repository at `~/.local/share/context-harness`
-- checks out `v0.1.6` by default
+- checks out `v0.1.7` by default
 - runs `uv sync`
 - prints the runtime repository path on stdout
 
@@ -204,6 +204,25 @@ bash scripts/bootstrap.sh
 ```
 
 You can also set `CONTEXT_HARNESS_RUNTIME_DIR` to choose a custom runtime checkout path.
+
+## Audit Local Version
+
+Use these read-only checks before and after upgrading a machine:
+
+```bash
+context-harness --version
+readlink ~/.context-harness
+git -C ~/.local/share/context-harness describe --tags --always --dirty
+git -C ~/.local/share/context-harness status --short
+rg "context-harness" ~/.codex/hooks.json ~/.claude/settings.json
+```
+
+For a smooth upgrade, publish a tagged release first, then rerun the skill bootstrap once. The bootstrap updates `~/.local/share/context-harness` to the default tag baked into the installed skill unless `CONTEXT_HARNESS_REF` overrides it:
+
+```bash
+bash ~/.agents/skills/sync-conversations/scripts/bootstrap.sh
+context-harness --version
+```
 
 ## Hooks
 

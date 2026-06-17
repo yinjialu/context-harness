@@ -167,7 +167,7 @@ gh skill publish skills --dry-run
 发布 tagged release：
 
 ```bash
-gh skill publish skills --tag v0.1.6
+gh skill publish skills --tag v0.1.7
 ```
 
 `skills/` 是 canonical publish target。直接在仓库根目录运行 `gh skill publish` 可能会提示 `.agents/skills` 和 `.claude/skills`；这两组目录是我们特意保留的 repo-local discovery symlink，用于让 Codex 和 Claude Code 打开仓库时自动发现 skills。
@@ -186,7 +186,7 @@ cd "$runtime_dir"
 bootstrap 脚本会：
 
 - clone 或更新 runtime repo 到 `~/.local/share/context-harness`
-- 默认 checkout `v0.1.6`
+- 默认 checkout `v0.1.7`
 - 执行 `uv sync`
 - 通过 stdout 输出 runtime repo 路径
 
@@ -206,6 +206,25 @@ bash scripts/bootstrap.sh
 ```
 
 也可以通过 `CONTEXT_HARNESS_RUNTIME_DIR` 自定义 runtime checkout 位置。
+
+## 审计本机版本
+
+升级前后可以先跑这些只读检查：
+
+```bash
+context-harness --version
+readlink ~/.context-harness
+git -C ~/.local/share/context-harness describe --tags --always --dirty
+git -C ~/.local/share/context-harness status --short
+rg "context-harness" ~/.codex/hooks.json ~/.claude/settings.json
+```
+
+平滑升级时，先发布 tagged release，再跑一次 skill bootstrap。bootstrap 会把 `~/.local/share/context-harness` 更新到 skill 内置的默认 tag，除非你用 `CONTEXT_HARNESS_REF` 覆盖：
+
+```bash
+bash ~/.agents/skills/sync-conversations/scripts/bootstrap.sh
+context-harness --version
+```
 
 ## Hooks
 

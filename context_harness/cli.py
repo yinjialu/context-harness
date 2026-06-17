@@ -6,6 +6,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from . import __version__
 from .collectors.claude_code import sync_claude_code
 from .collectors.codex import sync_codex
 from .config import load_config, resolve_context_home
@@ -20,6 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="context-harness",
         description="Local-first personal AI context loop for Code Agent conversations.",
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--context-home", help="Override context-harness data home")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
