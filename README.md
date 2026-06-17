@@ -161,11 +161,12 @@ After initialization, the data home looks roughly like this:
 
 ## Skills
 
-This repository includes three Agent-facing skills:
+This repository includes four Agent-facing skills:
 
 - `skills/init-context`: initialize the data home and optionally install Codex / Claude Code hooks.
 - `skills/sync-conversations`: manually run full or incremental conversation sync.
 - `skills/profile-dreamer`: extract profile and memory update proposals from archived conversations.
+- `skills/adapt-agent-backup`: guide another Agent through adding a new local Code Agent backup adapter.
 
 The skills describe Agent workflows. The CLI owns the actual behavior, so business logic stays in one place.
 

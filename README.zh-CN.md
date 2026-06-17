@@ -163,11 +163,12 @@ global_context_file = "global-claude.md"
 
 ## Skills
 
-仓库内置三个 Agent-facing skills：
+仓库内置四个 Agent-facing skills：
 
 - `skills/init-context`：初始化数据目录，并按需安装 Codex / Claude Code hooks。
 - `skills/sync-conversations`：手动触发全量或增量 conversation 同步。
 - `skills/profile-dreamer`：从归档 conversation 中提取个人画像和 memory 候选更新。
+- `skills/adapt-agent-backup`：指导其他 Agent 为新的本地 Code Agent 增加备份适配。
 
 这些 skills 只负责描述 Agent 工作流，实际能力由 CLI 提供，避免把业务逻辑散落到多个 Agent prompt 里。
 
