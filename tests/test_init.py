@@ -14,6 +14,7 @@ def test_initialize_context_home_creates_expected_files(tmp_path):
     assert (tmp_path / "logs").is_dir()
     assert (tmp_path / "state").is_dir()
     assert "created" in result.statuses.values()
+    assert f'context_home = "{tmp_path.resolve()}"' in (tmp_path / "config.toml").read_text(encoding="utf-8")
 
 
 def test_initialize_context_home_is_idempotent(tmp_path):

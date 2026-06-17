@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
 from .config import resolve_context_home
 
 
-DEFAULT_CONFIG = """[paths]
-context_home = "~/.context-harness"
+DEFAULT_CONFIG_TEMPLATE = """[paths]
+context_home = {context_home}
 
 [sources.codex]
 enabled = true
@@ -40,6 +41,10 @@ def _write_if_missing(path: Path, content: str, statuses: dict[str, str]) -> Non
     statuses[path.name] = "created"
 
 
+def _default_config(home: Path) -> str:
+    return DEFAULT_CONFIG_TEMPLATE.format(context_home=json.dumps(str(home)))
+
+
 def initialize_context_home(context_home: str | Path | None = None) -> InitResult:
     home = resolve_context_home(context_home)
     statuses: dict[str, str] = {}
@@ -54,7 +59,7 @@ def initialize_context_home(context_home: str | Path | None = None) -> InitResul
     ]:
         directory.mkdir(parents=True, exist_ok=True)
 
-    _write_if_missing(home / "config.toml", DEFAULT_CONFIG, statuses)
+    _write_if_missing(home / "config.toml", _default_config(home), statuses)
     _write_if_missing(home / "memory" / "MEMORY.md", "# Memory\n", statuses)
     _write_if_missing(home / "memory" / "user_profile.md", "# User Profile\n", statuses)
     _write_if_missing(
