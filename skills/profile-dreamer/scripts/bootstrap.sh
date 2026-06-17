@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_url="${CONTEXT_HARNESS_REPO_URL:-https://github.com/yinjialu/context-harness.git}"
 runtime_dir="${CONTEXT_HARNESS_RUNTIME_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/context-harness}"
-runtime_ref="${CONTEXT_HARNESS_REF:-v0.1.7}"
+runtime_ref="${CONTEXT_HARNESS_REF:-v0.1.8}"
 skip_update="${CONTEXT_HARNESS_BOOTSTRAP_SKIP_UPDATE:-0}"
 
 log() {

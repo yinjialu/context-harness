@@ -1,0 +1,34 @@
+name: Publish Claude Code Plugin Marketplace
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build marketplace tree
+        run: python3 scripts/build_claude_plugin_marketplace.py
+
+      - name: Publish claude-plugin branch
+        run: |
+          set -eu
+          cd dist/claude-plugin-marketplace
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Publish Claude Code plugin marketplace"
+          git branch -M claude-plugin
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin claude-plugin
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

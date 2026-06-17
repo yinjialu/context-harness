@@ -1,0 +1,20 @@
+{
+  "name": "context-harness",
+  "displayName": "Context Harness",
+  "version": "0.1.8",
+  "description": "Local-first personal AI context loop for Code Agent conversations.",
+  "author": {
+    "name": "Jialu Yin",
+    "url": "https://github.com/yinjialu"
+  },
+  "homepage": "https://github.com/yinjialu/context-harness",
+  "repository": "https://github.com/yinjialu/context-harness",
+  "license": "MIT",
+  "keywords": [
+    "context",
+    "memory",
+    "codex",
+    "claude-code",
+    "conversation-sync"
+  ]
+}

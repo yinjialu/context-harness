@@ -201,6 +201,64 @@ ln -sfn /path/to/context-harness/skills/sync-conversations ~/.claude/skills/sync
 ln -sfn /path/to/context-harness/skills/profile-dreamer ~/.claude/skills/profile-dreamer
 ```
 
+## Claude Code Plugin
+
+This repository is also a Claude Code plugin. Its plugin manifest lives at `.claude-plugin/plugin.json`, and Claude Code auto-discovers the repository's `skills/` directory.
+
+### Community install
+
+Publish the Git marketplace and ask users to add it once:
+
+```bash
+/plugin marketplace add yinjialu/context-harness#claude-plugin
+```
+
+Then install the plugin from the marketplace:
+
+```bash
+/plugin install context-harness@context-harness
+```
+
+You can also drive the same flow from the CLI:
+
+```bash
+claude plugin marketplace add yinjialu/context-harness#claude-plugin
+claude plugin install context-harness@context-harness
+```
+
+Update an existing installation:
+
+```bash
+claude plugin marketplace update context-harness
+claude plugin update context-harness@context-harness
+```
+
+### Publishing the marketplace branch
+
+The `claude-plugin` branch is generated from this repository by `scripts/build_claude_plugin_marketplace.py`. Maintainers can publish it manually:
+
+```bash
+python3 scripts/build_claude_plugin_marketplace.py
+cd dist/claude-plugin-marketplace
+git init
+git add .
+git commit -m "Publish Claude Code plugin marketplace"
+git branch -M claude-plugin
+git remote add origin git@github.com:yinjialu/context-harness.git
+git push --force origin claude-plugin
+```
+
+The `Publish Claude Code Plugin Marketplace` GitHub Actions workflow also publishes that branch when a `v*` tag is pushed, or when the workflow is run manually.
+
+For local development, add the current checkout as a local marketplace:
+
+```bash
+/plugin marketplace add /path/to/context-harness
+/plugin install context-harness@context-harness
+```
+
+Claude Code reads `.claude-plugin/plugin.json` directly from the checkout, so the repository stays the single source of truth.
+
 ## Install With skills.sh / gh skill
 
 The repository follows the standard `skills/*/SKILL.md` layout, so skill tooling can install it directly from GitHub.
@@ -229,7 +287,7 @@ gh skill publish skills --dry-run
 Publish a tagged release:
 
 ```bash
-gh skill publish skills --tag v0.1.7
+gh skill publish skills --tag v0.1.8
 ```
 
 `skills/` is the canonical publish target. Running `gh skill publish` from the repository root may warn about `.agents/skills` and `.claude/skills`; those directories are intentionally kept as repo-local discovery symlinks for Codex and Claude Code.
@@ -248,7 +306,7 @@ cd "$runtime_dir"
 The bootstrap script:
 
 - clones or updates the runtime repository at `~/.local/share/context-harness`
-- checks out `v0.1.7` by default
+- checks out `v0.1.8` by default
 - runs `uv sync`
 - prints the runtime repository path on stdout
 

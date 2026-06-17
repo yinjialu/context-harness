@@ -203,6 +203,64 @@ ln -sfn /path/to/context-harness/skills/sync-conversations ~/.claude/skills/sync
 ln -sfn /path/to/context-harness/skills/profile-dreamer ~/.claude/skills/profile-dreamer
 ```
 
+## Claude Code Plugin
+
+本仓库同时是一个 Claude Code 插件。插件清单位于 `.claude-plugin/plugin.json`，Claude Code 会自动发现仓库的 `skills/` 目录。
+
+### 社区安装
+
+发布 Git marketplace，让用户添加一次：
+
+```bash
+/plugin marketplace add yinjialu/context-harness#claude-plugin
+```
+
+随后从该 marketplace 安装插件：
+
+```bash
+/plugin install context-harness@context-harness
+```
+
+也可以通过 CLI 完成同样的流程：
+
+```bash
+claude plugin marketplace add yinjialu/context-harness#claude-plugin
+claude plugin install context-harness@context-harness
+```
+
+更新已安装的插件：
+
+```bash
+claude plugin marketplace update context-harness
+claude plugin update context-harness@context-harness
+```
+
+### 发布 marketplace 分支
+
+`claude-plugin` 分支由 `scripts/build_claude_plugin_marketplace.py` 从本仓库生成。维护者可以手动发布：
+
+```bash
+python3 scripts/build_claude_plugin_marketplace.py
+cd dist/claude-plugin-marketplace
+git init
+git add .
+git commit -m "Publish Claude Code plugin marketplace"
+git branch -M claude-plugin
+git remote add origin git@github.com:yinjialu/context-harness.git
+git push --force origin claude-plugin
+```
+
+`Publish Claude Code Plugin Marketplace` GitHub Actions 工作流也会在推送 `v*` tag 或手动触发时发布该分支。
+
+本地开发时，可将当前 checkout 添加为本地 marketplace：
+
+```bash
+/plugin marketplace add /path/to/context-harness
+/plugin install context-harness@context-harness
+```
+
+Claude Code 会直接读取 checkout 中的 `.claude-plugin/plugin.json`，因此仓库始终是唯一可信来源。
+
 ## 通过 skills.sh / gh skill 安装
 
 仓库遵循标准的 `skills/*/SKILL.md` 目录结构，因此可以直接被 skill tooling 从 GitHub 安装。
@@ -231,7 +289,7 @@ gh skill publish skills --dry-run
 发布 tagged release：
 
 ```bash
-gh skill publish skills --tag v0.1.7
+gh skill publish skills --tag v0.1.8
 ```
 
 `skills/` 是 canonical publish target。直接在仓库根目录运行 `gh skill publish` 可能会提示 `.agents/skills` 和 `.claude/skills`；这两组目录是我们特意保留的 repo-local discovery symlink，用于让 Codex 和 Claude Code 打开仓库时自动发现 skills。
@@ -250,7 +308,7 @@ cd "$runtime_dir"
 bootstrap 脚本会：
 
 - clone 或更新 runtime repo 到 `~/.local/share/context-harness`
-- 默认 checkout `v0.1.7`
+- 默认 checkout `v0.1.8`
 - 执行 `uv sync`
 - 通过 stdout 输出 runtime repo 路径
 

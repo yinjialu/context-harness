@@ -1,6 +1,6 @@
 {
   "name": "context-harness",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Local-first personal AI context loop for Code Agent conversations.",
   "author": {
     "name": "Jialu Yin",

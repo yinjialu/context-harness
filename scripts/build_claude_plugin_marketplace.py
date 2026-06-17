@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a Codex plugin marketplace directory for distribution."""
+"""Build a Claude Code plugin marketplace directory for distribution."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ EXCLUDED_NAMES = {
     ".DS_Store",
     ".agents",
     ".claude",
-    ".claude-plugin",
+    ".codex-plugin",
     ".git",
     ".github",
     ".mypy_cache",
@@ -36,11 +36,11 @@ EXCLUDED_SUFFIXES = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Build a distributable Codex plugin marketplace tree."
+        description="Build a distributable Claude Code plugin marketplace tree."
     )
     parser.add_argument(
         "--output",
-        default="dist/codex-plugin-marketplace",
+        default="dist/claude-plugin-marketplace",
         help="Output directory for the generated marketplace tree.",
     )
     return parser.parse_args()
@@ -52,7 +52,7 @@ def main() -> None:
     output_root = (repo_root / args.output).resolve()
     plugin_root = output_root / "plugins" / PLUGIN_NAME
 
-    manifest_path = repo_root / ".codex-plugin" / "plugin.json"
+    manifest_path = repo_root / ".claude-plugin" / "plugin.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if manifest.get("name") != PLUGIN_NAME:
         raise SystemExit(
@@ -70,25 +70,24 @@ def main() -> None:
         dirs_exist_ok=True,
     )
 
-    marketplace_dir = output_root / ".agents" / "plugins"
+    marketplace_dir = output_root / ".claude-plugin"
     marketplace_dir.mkdir(parents=True, exist_ok=True)
     marketplace = {
         "name": MARKETPLACE_NAME,
-        "interface": {
-            "displayName": MARKETPLACE_DISPLAY_NAME,
+        "description": manifest.get("description", ""),
+        "owner": {
+            "name": manifest.get("author", {}).get("name", ""),
+            "url": manifest.get("author", {}).get("url", ""),
         },
         "plugins": [
             {
                 "name": PLUGIN_NAME,
-                "source": {
-                    "source": "local",
-                    "path": f"./plugins/{PLUGIN_NAME}",
-                },
-                "policy": {
-                    "installation": "AVAILABLE",
-                    "authentication": "ON_INSTALL",
-                },
+                "source": f"./plugins/{PLUGIN_NAME}",
+                "description": manifest.get("description", ""),
+                "displayName": MARKETPLACE_DISPLAY_NAME,
+                "version": manifest.get("version"),
                 "category": "Productivity",
+                "keywords": manifest.get("keywords", []),
             }
         ],
     }
