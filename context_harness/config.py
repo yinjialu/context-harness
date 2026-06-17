@@ -23,7 +23,6 @@ class SourceConfig:
     def projects_dir(self) -> Path:
         return self.input_dir
 
-
 @dataclass(frozen=True)
 class MemoryConfig:
     profile_file: Path
@@ -35,6 +34,7 @@ class AppConfig:
     context_home: Path
     codex: SourceConfig
     claude_code: SourceConfig
+    hermes_agent: SourceConfig
     memory: MemoryConfig
 
 
@@ -69,6 +69,7 @@ def load_config(context_home: str | Path | None = None) -> AppConfig:
 
     codex_raw = raw.get("sources", {}).get("codex", {})
     claude_raw = raw.get("sources", {}).get("claude-code", {})
+    hermes_raw = raw.get("sources", {}).get("hermes-agent", {})
     memory_raw = raw.get("memory", {})
 
     codex = SourceConfig(
@@ -81,6 +82,11 @@ def load_config(context_home: str | Path | None = None) -> AppConfig:
         input_dir=_resolve_path(resolved_home, claude_raw.get("projects_dir", "~/.claude/projects")),
         output_dir=_resolve_path(resolved_home, claude_raw.get("output_dir", "conversations/claude-code")),
     )
+    hermes_agent = SourceConfig(
+        enabled=bool(hermes_raw.get("enabled", True)),
+        input_dir=_resolve_path(resolved_home, hermes_raw.get("sessions_dir", "~/.hermes/sessions")),
+        output_dir=_resolve_path(resolved_home, hermes_raw.get("output_dir", "conversations/hermes-agent")),
+    )
     memory = MemoryConfig(
         profile_file=_resolve_path(resolved_home, memory_raw.get("profile_file", "memory/user_profile.md")),
         global_context_file=_resolve_path(resolved_home, memory_raw.get("global_context_file", "global-claude.md")),
@@ -90,5 +96,6 @@ def load_config(context_home: str | Path | None = None) -> AppConfig:
         context_home=resolved_home,
         codex=codex,
         claude_code=claude_code,
+        hermes_agent=hermes_agent,
         memory=memory,
     )

@@ -8,6 +8,7 @@
 
 - <a href="https://developers.openai.com/codex/app"><img src="https://developers.openai.com/favicon.png" alt="" width="16" height="16" align="absmiddle"></a> [Codex](https://developers.openai.com/codex/app)
 - <a href="https://docs.anthropic.com/en/docs/claude-code/overview"><img src="https://www.anthropic.com/favicon.ico" alt="" width="16" height="16" align="absmiddle"></a> [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
+- [Hermes Agent](https://hermes-agent.nousresearch.com/docs)
 
 项目采用“程序”和“个人数据”分离的设计。这个仓库只放工具本身；你的对话、记忆、日志和同步状态会保存在可配置的数据目录中，例如 `~/.context-harness`。
 
@@ -97,6 +98,20 @@ uv run context-harness --context-home ~/.context-harness sync codex --latest 1
 uv run context-harness --context-home ~/.context-harness sync claude-code --latest 1
 ```
 
+同步最近一条 Hermes Agent 导出或 session 快照：
+
+```bash
+uv run context-harness --context-home ~/.context-harness sync hermes-agent --latest 1
+```
+
+Hermes Agent 目前没有和本 CLI 兼容的 stop hook。要同步 Hermes 的 canonical 历史记录，请先导出 session：
+
+```bash
+mkdir -p ~/.hermes/sessions
+hermes sessions export ~/.hermes/sessions/hermes-export.jsonl
+uv run context-harness --context-home ~/.context-harness sync hermes-agent --latest 1
+```
+
 安装自动同步 hooks：
 
 ```bash
@@ -113,7 +128,7 @@ CONTEXT_HARNESS_HOME=~/Documents/my-context uv run context-harness init
 uv run context-harness --context-home ~/Documents/my-context init
 ```
 
-`--context-home` 优先级高于 `CONTEXT_HARNESS_HOME`。初始化后可以修改数据目录里的 `config.toml`，自定义 Codex / Claude Code 的原始对话记录位置和归档输出位置。
+`--context-home` 优先级高于 `CONTEXT_HARNESS_HOME`。初始化后可以修改数据目录里的 `config.toml`，自定义 Codex / Claude Code / Hermes Agent 的原始对话记录位置和归档输出位置。
 
 示例：
 
@@ -127,6 +142,11 @@ output_dir = "conversations/codex"
 enabled = true
 projects_dir = "~/Documents/claude-code-projects"
 output_dir = "conversations/claude-code"
+
+[sources.hermes-agent]
+enabled = true
+sessions_dir = "~/.hermes/sessions"
+output_dir = "conversations/hermes-agent"
 
 [memory]
 profile_file = "memory/user_profile.md"
@@ -146,12 +166,14 @@ global_context_file = "global-claude.md"
   conversations/
     codex/
     claude-code/
+    hermes-agent/
   memory/
     MEMORY.md
     user_profile.md
   state/
     codex-sync-state.json
     claude-code-sync-state.json
+    hermes-agent-sync-state.json
 ```
 
 其中：
@@ -165,7 +187,7 @@ global_context_file = "global-claude.md"
 
 仓库内置四个 Agent-facing skills：
 
-- `skills/init-context`：初始化数据目录，并按需安装 Codex / Claude Code hooks。
+- `skills/init-context`：初始化数据目录，并按需安装 Codex / Claude Code hooks。Hermes Agent 同步为手动方式，因为 Hermes 目前没有兼容的 stop hook。
 - `skills/sync-conversations`：手动触发全量或增量 conversation 同步。
 - `skills/profile-dreamer`：从归档 conversation 中提取个人画像和 memory 候选更新。
 - `skills/adapt-agent-backup`：指导其他 Agent 为新的本地 Code Agent 增加备份适配。
@@ -174,12 +196,12 @@ global_context_file = "global-claude.md"
 
 ### 一键复制提示词：增加 Agent 备份适配
 
-把下面这段提示词复制给任意 coding Agent，并把 `<target-agent>` 换成你想适配的 Agent：
+把下面这段提示词复制给你想让 `context-harness` 支持的 coding Agent：
 
 ```text
 请克隆并检查 https://github.com/yinjialu/context-harness。
 
-请使用仓库内的 `adapt-agent-backup` skill，为 <target-agent> 增加本地 conversation 备份适配，并提交 PR。
+请使用仓库内的 `adapt-agent-backup` skill，为你当前运行所在的 coding Agent 增加本地 conversation 备份适配，并提交 PR。
 ```
 
 ## Codex Plugin

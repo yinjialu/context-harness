@@ -1,6 +1,6 @@
 ---
 name: sync-conversations
-description: Sync local Codex and Claude Code conversation records into a context-harness data home. Use when the user asks to back up Code Agent conversations, sync Codex sessions, sync Claude Code sessions, run full or incremental conversation backup, or inspect context-harness sync status.
+description: Sync local Codex, Claude Code, and Hermes Agent conversation records into a context-harness data home. Use when the user asks to back up Code Agent conversations, sync Codex sessions, sync Claude Code sessions, sync Hermes Agent sessions, run full or incremental conversation backup, or inspect context-harness sync status.
 license: MIT
 ---
 
@@ -32,6 +32,9 @@ V1 supports:
 
 - `codex`
 - `claude-code`
+- `hermes-agent` (manual sync from Hermes session export or snapshots)
+
+Hermes Agent does not currently expose a compatible stop hook. To back up the canonical Hermes session store, export it first with `hermes sessions export ~/.hermes/sessions/hermes-export.jsonl`, then run `sync hermes-agent`.
 
 Claude Web, Antigravity, ChatGPT, Gemini, and browser exports are outside V1.
 
@@ -52,6 +55,7 @@ Incremental sync:
 ```bash
 uv run context-harness --context-home <context-home> sync codex --latest 1
 uv run context-harness --context-home <context-home> sync claude-code --latest 1
+uv run context-harness --context-home <context-home> sync hermes-agent --latest 1
 ```
 
 Full sync:
@@ -59,6 +63,7 @@ Full sync:
 ```bash
 uv run context-harness --context-home <context-home> sync codex --all
 uv run context-harness --context-home <context-home> sync claude-code --all
+uv run context-harness --context-home <context-home> sync hermes-agent --all
 ```
 
 After running, summarize `checked`, `created`, `updated`, `skipped`, and `output_dir`.

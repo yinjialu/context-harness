@@ -8,6 +8,7 @@ def test_initialize_context_home_creates_expected_files(tmp_path):
     assert (tmp_path / "config.toml").exists()
     assert (tmp_path / "conversations" / "codex").is_dir()
     assert (tmp_path / "conversations" / "claude-code").is_dir()
+    assert (tmp_path / "conversations" / "hermes-agent").is_dir()
     assert (tmp_path / "memory" / "MEMORY.md").exists()
     assert (tmp_path / "memory" / "user_profile.md").exists()
     assert (tmp_path / "global-claude.md").exists()
