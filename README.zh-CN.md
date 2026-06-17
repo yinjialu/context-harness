@@ -85,6 +85,13 @@ uv sync
 uv run context-harness --context-home ~/.context-harness init
 ```
 
+`init` 还会把数据目录里的 `global-claude.md` 绑定到 Agent 级上下文：
+
+- Claude Code：向 `~/.claude/CLAUDE.md` 追加一行 `@import`（文件不存在则创建）。
+- Codex：向 `~/.codex/AGENTS.md` 追加一个受管理的 Context Harness 区块（文件不存在则创建），让 Codex 在新会话开始时读取同一份全局上下文文件。
+
+该步骤幂等且非破坏——已有的 `CLAUDE.md` 和 `AGENTS.md` 内容会被保留。首次绑定后需重启 Claude Code 或开启新的 Codex 会话，上下文才会生效。
+
 同步最近一条 Codex conversation：
 
 ```bash

@@ -39,6 +39,13 @@ Overrides:
 uv run context-harness --context-home <context-home> init
 ```
 
+`init` also binds the data home's `global-claude.md` into agent-level context:
+
+- Claude Code: adds an `@import` line to `~/.claude/CLAUDE.md` (creating that file if absent).
+- Codex: adds a managed Context Harness block to `~/.codex/AGENTS.md` (creating that file if absent) that tells Codex to read the same global context file at the start of new sessions.
+
+This is idempotent and non-destructive — existing CLAUDE.md and AGENTS.md content is preserved, and re-running reports `CLAUDE.md: unchanged` and `AGENTS.md: unchanged`. After a fresh link, the user must restart Claude Code or start a new Codex session for the context to load.
+
 4. If the user wants automatic backup hooks, run these commands from the same repository root. Supported Code Agents install to user-level config by default. Use `--scope project` to install into the current project, or combine it with `--project-root` to target another project:
 
 ```bash

@@ -85,6 +85,13 @@ Initialize the data home:
 uv run context-harness --context-home ~/.context-harness init
 ```
 
+`init` also binds the data home's `global-claude.md` into agent-level context:
+
+- Claude Code: adds an `@import` line to `~/.claude/CLAUDE.md` (created if absent).
+- Codex: adds a managed Context Harness block to `~/.codex/AGENTS.md` (created if absent) that tells Codex to read the same global context file at the start of new sessions.
+
+The step is idempotent and non-destructive — existing `CLAUDE.md` and `AGENTS.md` content is preserved. Restart Claude Code or start a new Codex session after a fresh link so the imported context loads.
+
 Sync the latest Codex conversation:
 
 ```bash
