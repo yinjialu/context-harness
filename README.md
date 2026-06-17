@@ -49,7 +49,7 @@ uv run context-harness --context-home ~/.context-harness sync claude-code --late
 Install automatic sync hooks:
 
 ```bash
-uv run context-harness --context-home ~/.context-harness hooks install codex --project-root /path/to/your-codex-project
+uv run context-harness --context-home ~/.context-harness hooks install codex
 uv run context-harness --context-home ~/.context-harness hooks install claude-code
 ```
 
@@ -165,7 +165,7 @@ gh skill publish skills --dry-run
 Publish a tagged release:
 
 ```bash
-gh skill publish skills --tag v0.1.5
+gh skill publish skills --tag v0.1.6
 ```
 
 `skills/` is the canonical publish target. Running `gh skill publish` from the repository root may warn about `.agents/skills` and `.claude/skills`; those directories are intentionally kept as repo-local discovery symlinks for Codex and Claude Code.
@@ -184,7 +184,7 @@ cd "$runtime_dir"
 The bootstrap script:
 
 - clones or updates the runtime repository at `~/.local/share/context-harness`
-- checks out `v0.1.5` by default
+- checks out `v0.1.6` by default
 - runs `uv sync`
 - prints the runtime repository path on stdout
 
@@ -209,22 +209,36 @@ You can also set `CONTEXT_HARNESS_RUNTIME_DIR` to choose a custom runtime checko
 
 V1 hooks automatically call the sync command at the right point in Codex and Claude Code lifecycle, then archive the new conversation into `context_home`.
 
-Codex hooks are project-local. They write `.codex/config.toml` and `.codex/hooks.json` in the target project. If you run the command from the target project root, `--project-root` can be omitted:
+Hook installers use the same scope model for supported Code Agents: user-level by default, project-local when `--scope project` is passed. `--project-root` targets a different project; otherwise project-local install uses the current directory.
+
+Codex hooks are written to `~/.codex/config.toml` and `~/.codex/hooks.json` by default:
 
 ```bash
 uv run context-harness --context-home ~/.context-harness hooks install codex
 ```
 
+To install a project-local Codex hook instead, pass `--scope project`. From the target project root:
+
+```bash
+uv run context-harness --context-home ~/.context-harness hooks install codex --scope project
+```
+
 If you run the command from the `context-harness` repository root for another project, pass the target project explicitly:
 
 ```bash
-uv run context-harness --context-home ~/.context-harness hooks install codex --project-root /path/to/your-codex-project
+uv run context-harness --context-home ~/.context-harness hooks install codex --scope project --project-root /path/to/your-codex-project
 ```
 
 Claude Code hooks are written to `~/.claude/settings.json` by default:
 
 ```bash
 uv run context-harness --context-home ~/.context-harness hooks install claude-code
+```
+
+To install a project-local Claude Code hook:
+
+```bash
+uv run context-harness --context-home ~/.context-harness hooks install claude-code --scope project
 ```
 
 Hook installers are idempotent. Re-running them updates the existing context-harness sync hook without deleting unrelated hook configuration.
@@ -256,7 +270,7 @@ Recommended setup:
 
 ```bash
 uv run context-harness --context-home ~/.context-harness init
-uv run context-harness --context-home ~/.context-harness hooks install codex --project-root /path/to/your-codex-project
+uv run context-harness --context-home ~/.context-harness hooks install codex
 ```
 
 Then run `/hooks` in Codex and trust the `context-harness` command hook. After that, the Codex Stop hook passes `transcript_path` to `context-harness`, and the current transcript is archived first.

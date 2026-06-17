@@ -17,7 +17,7 @@ runtime_dir="$(bash scripts/bootstrap.sh)"
 cd "$runtime_dir"
 ```
 
-The script clones or updates the runtime repository at `~/.local/share/context-harness` by default, checks out `v0.1.5`, and runs `uv sync`.
+The script clones or updates the runtime repository at `~/.local/share/context-harness` by default, checks out `v0.1.6`, and runs `uv sync`.
 
 Overrides:
 
@@ -39,11 +39,15 @@ Overrides:
 uv run context-harness --context-home <context-home> init
 ```
 
-4. If the user wants automatic backup hooks, run these commands from the same repository root. For Codex, set `--project-root` to the Codex project that should receive `.codex/` hook config:
+4. If the user wants automatic backup hooks, run these commands from the same repository root. Supported Code Agents install to user-level config by default. Use `--scope project` to install into the current project, or combine it with `--project-root` to target another project:
 
 ```bash
-uv run context-harness --context-home <context-home> hooks install codex --project-root <codex-project-root>
+uv run context-harness --context-home <context-home> hooks install codex
+uv run context-harness --context-home <context-home> hooks install codex --scope project
+uv run context-harness --context-home <context-home> hooks install codex --scope project --project-root <codex-project-root>
 uv run context-harness --context-home <context-home> hooks install claude-code
+uv run context-harness --context-home <context-home> hooks install claude-code --scope project
+uv run context-harness --context-home <context-home> hooks install claude-code --scope project --project-root <claude-code-project-root>
 ```
 
 5. Report the data home and hook status.

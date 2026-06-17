@@ -49,7 +49,7 @@ uv run context-harness --context-home ~/.context-harness sync claude-code --late
 安装自动同步 hooks：
 
 ```bash
-uv run context-harness --context-home ~/.context-harness hooks install codex --project-root /path/to/your-codex-project
+uv run context-harness --context-home ~/.context-harness hooks install codex
 uv run context-harness --context-home ~/.context-harness hooks install claude-code
 ```
 
@@ -167,7 +167,7 @@ gh skill publish skills --dry-run
 发布 tagged release：
 
 ```bash
-gh skill publish skills --tag v0.1.5
+gh skill publish skills --tag v0.1.6
 ```
 
 `skills/` 是 canonical publish target。直接在仓库根目录运行 `gh skill publish` 可能会提示 `.agents/skills` 和 `.claude/skills`；这两组目录是我们特意保留的 repo-local discovery symlink，用于让 Codex 和 Claude Code 打开仓库时自动发现 skills。
@@ -186,7 +186,7 @@ cd "$runtime_dir"
 bootstrap 脚本会：
 
 - clone 或更新 runtime repo 到 `~/.local/share/context-harness`
-- 默认 checkout `v0.1.5`
+- 默认 checkout `v0.1.6`
 - 执行 `uv sync`
 - 通过 stdout 输出 runtime repo 路径
 
@@ -211,22 +211,36 @@ bash scripts/bootstrap.sh
 
 V1 的 hooks 目标是让 Codex 和 Claude Code 在合适时机自动调用同步命令，把新 conversation 归档到 `context_home`。
 
-Codex hook 写入目标项目的 `.codex/config.toml` 和 `.codex/hooks.json`。在目标项目根目录执行时，可以省略 `--project-root`：
+所有受支持的 Code Agent 使用同一套安装模式：默认用户级安装；传 `--scope project` 时安装到项目级。`--project-root` 可以指定另一个项目，否则项目级安装使用当前目录。
+
+Codex hook 默认写入 `~/.codex/config.toml` 和 `~/.codex/hooks.json`：
 
 ```bash
 uv run context-harness --context-home ~/.context-harness hooks install codex
 ```
 
+安装项目级 Codex hook 时，在目标项目根目录执行：
+
+```bash
+uv run context-harness --context-home ~/.context-harness hooks install codex --scope project
+```
+
 如果从 `context-harness` 仓库根目录给其他项目安装，请显式传入目标项目路径：
 
 ```bash
-uv run context-harness --context-home ~/.context-harness hooks install codex --project-root /path/to/your-codex-project
+uv run context-harness --context-home ~/.context-harness hooks install codex --scope project --project-root /path/to/your-codex-project
 ```
 
 Claude Code hook 默认写入 `~/.claude/settings.json`：
 
 ```bash
 uv run context-harness --context-home ~/.context-harness hooks install claude-code
+```
+
+安装项目级 Claude Code hook 时：
+
+```bash
+uv run context-harness --context-home ~/.context-harness hooks install claude-code --scope project
 ```
 
 hook installer 是幂等的，重复执行会更新已有的 context-harness sync hook，不会清空已有的其他 hook 配置。
@@ -258,7 +272,7 @@ $profile-dreamer 从 conversations 中提取 memory / profile 候选更新
 
 ```bash
 uv run context-harness --context-home ~/.context-harness init
-uv run context-harness --context-home ~/.context-harness hooks install codex --project-root /path/to/your-codex-project
+uv run context-harness --context-home ~/.context-harness hooks install codex
 ```
 
 然后在 Codex 里运行 `/hooks`，确认 `context-harness` command hook 已被信任。之后 Codex Stop hook 会把 hook stdin 里的 `transcript_path` 传给 `context-harness`，优先归档当前结束的 transcript。

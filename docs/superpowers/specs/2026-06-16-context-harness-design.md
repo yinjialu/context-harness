@@ -192,12 +192,15 @@ Hook installers 必须幂等：
 
 Codex hook target：
 
-- project-local `.codex/config.toml`
-- project-local `.codex/hooks.json`
+- default user-level `~/.codex/config.toml`
+- default user-level `~/.codex/hooks.json`
+- optional project-local `.codex/config.toml` when `--scope project` is used
+- optional project-local `.codex/hooks.json` when `--scope project` is used
 
 Claude Code hook target：
 
-- global `~/.claude/settings.json`
+- default user-level `~/.claude/settings.json`
+- optional project-local `.claude/settings.json` when `--scope project` is used
 
 ### Skills
 

@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from context_harness.hooks.claude_code import install_claude_code_hook
-from context_harness.hooks.codex import install_codex_hook
+from context_harness.hooks.codex import install_codex_hook, install_codex_user_hook
 
 
 def _config_lines(path):
@@ -65,6 +65,25 @@ def test_install_codex_hook_is_idempotent(tmp_path):
     assert "sync codex --hook-stdin" in command
     assert hook["timeout"] == 30
     assert "async" not in hook
+
+
+def test_install_codex_user_hook_is_idempotent(tmp_path):
+    codex_home = tmp_path / ".codex"
+
+    changed = install_codex_user_hook(codex_home=codex_home, context_home=tmp_path / "home")
+    unchanged = install_codex_user_hook(codex_home=codex_home, context_home=tmp_path / "home")
+
+    assert changed is True
+    assert unchanged is False
+    assert (codex_home / "config.toml").exists()
+    assert "hooks = true" in _config_lines(codex_home / "config.toml")
+    hooks = json.loads((codex_home / "hooks.json").read_text(encoding="utf-8"))
+    hook = hooks["hooks"]["Stop"][0]["hooks"][0]
+    command = hook["command"]
+    assert command.startswith("cd ")
+    assert " run --with . python -m context_harness --context-home" in command
+    assert "sync codex --hook-stdin" in command
+    assert hook["timeout"] == 30
 
 
 def test_install_codex_hook_updates_canonical_feature_flag(tmp_path):

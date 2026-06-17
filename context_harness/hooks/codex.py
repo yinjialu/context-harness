@@ -13,7 +13,14 @@ _SECTION_RE = re.compile(r"^\s*\[.*\]\s*(?:#.*)?$")
 
 
 def install_codex_hook(project_root: Path, context_home: Path) -> bool:
-    codex_dir = project_root / ".codex"
+    return _install_codex_hook_dir(project_root / ".codex", context_home)
+
+
+def install_codex_user_hook(codex_home: Path, context_home: Path) -> bool:
+    return _install_codex_hook_dir(codex_home, context_home)
+
+
+def _install_codex_hook_dir(codex_dir: Path, context_home: Path) -> bool:
     config_path = codex_dir / "config.toml"
     hooks_path = codex_dir / "hooks.json"
     command = (

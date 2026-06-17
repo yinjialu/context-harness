@@ -170,7 +170,22 @@ output_dir = "conversations/claude-code"
     assert "Newer Session" not in content
 
 
-def test_cli_hooks_install_codex_writes_project_local_config(tmp_path):
+def test_cli_hooks_install_codex_writes_user_config_by_default(tmp_path, monkeypatch):
+    context_home = tmp_path / "home"
+    codex_home = tmp_path / ".codex"
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+    code = main(["--context-home", str(context_home), "hooks", "install", "codex"])
+
+    assert code == 0
+    assert (codex_home / "config.toml").exists()
+    hooks = json.loads((codex_home / "hooks.json").read_text(encoding="utf-8"))
+    command = hooks["hooks"]["Stop"][0]["hooks"][0]["command"]
+    assert "sync codex --hook-stdin" in command
+    assert f"--context-home {context_home}" in command
+
+
+def test_cli_hooks_install_codex_writes_project_local_config_when_requested(tmp_path):
     context_home = tmp_path / "home"
     project_root = tmp_path / "project"
 
@@ -181,6 +196,8 @@ def test_cli_hooks_install_codex_writes_project_local_config(tmp_path):
             "hooks",
             "install",
             "codex",
+            "--scope",
+            "project",
             "--project-root",
             str(project_root),
         ]
@@ -215,6 +232,45 @@ def test_cli_hooks_install_claude_code_writes_settings(tmp_path):
     command = settings["hooks"]["Stop"][0]["hooks"][0]["command"]
     assert "sync claude-code --hook-stdin" in command
     assert f"--context-home {context_home}" in command
+
+
+def test_cli_hooks_install_claude_code_writes_project_settings_when_requested(tmp_path, monkeypatch):
+    context_home = tmp_path / "home"
+    project_root = tmp_path / "project"
+    monkeypatch.setattr(Path, "home", lambda: tmp_path / "user")
+
+    code = main(
+        [
+            "--context-home",
+            str(context_home),
+            "hooks",
+            "install",
+            "claude-code",
+            "--scope",
+            "project",
+            "--project-root",
+            str(project_root),
+        ]
+    )
+
+    assert code == 0
+    assert not (tmp_path / "user" / ".claude" / "settings.json").exists()
+    settings = json.loads((project_root / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    command = settings["hooks"]["Stop"][0]["hooks"][0]["command"]
+    assert "sync claude-code --hook-stdin" in command
+    assert f"--context-home {context_home}" in command
+
+
+def test_cli_init_install_hooks_writes_codex_user_hook(tmp_path, monkeypatch):
+    context_home = tmp_path / "home"
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+    code = main(["--context-home", str(context_home), "init", "--install-hooks"])
+
+    assert code == 0
+    assert (tmp_path / ".codex" / "hooks.json").exists()
+    settings = json.loads((tmp_path / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    assert "sync claude-code --hook-stdin" in settings["hooks"]["Stop"][0]["hooks"][0]["command"]
 
 
 def test_cli_dream_prints_skill_hint(capsys):

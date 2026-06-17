@@ -10,7 +10,7 @@ from .collectors.claude_code import sync_claude_code
 from .collectors.codex import sync_codex
 from .config import load_config, resolve_context_home
 from .hooks.claude_code import install_claude_code_hook
-from .hooks.codex import install_codex_hook
+from .hooks.codex import install_codex_hook, install_codex_user_hook
 from .init import initialize_context_home
 from .models import SyncResult
 
@@ -37,8 +37,14 @@ def build_parser() -> argparse.ArgumentParser:
     hooks_subparsers = hooks_parser.add_subparsers(dest="hooks_command", required=True)
     hooks_install = hooks_subparsers.add_parser("install", help="Install hooks")
     hooks_install.add_argument("source", choices=["codex", "claude-code"])
-    hooks_install.add_argument("--project-root", default=".", help="Project root for Codex local hooks")
-    hooks_install.add_argument("--claude-settings", help="Claude Code settings.json path")
+    hooks_install.add_argument(
+        "--scope",
+        choices=["user", "project"],
+        default="user",
+        help="Hook scope; user writes user-level config, project writes config under <project-root>",
+    )
+    hooks_install.add_argument("--project-root", help="Project root for project-local hooks")
+    hooks_install.add_argument("--claude-settings", help="Custom Claude Code settings.json path")
 
     subparsers.add_parser("dream", help="Review conversations and propose memory updates")
 
@@ -76,6 +82,14 @@ def _hook_transcript_path() -> Path | None:
     return Path(transcript_path).expanduser().resolve()
 
 
+def _project_scope_requested(args: argparse.Namespace) -> bool:
+    return args.scope == "project" or args.project_root is not None
+
+
+def _project_root(args: argparse.Namespace) -> Path:
+    return Path(args.project_root or ".").expanduser().resolve()
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     try:
@@ -89,7 +103,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         for name, status in result.statuses.items():
             print(f"{name}: {status}")
         if args.install_hooks:
-            codex_changed = install_codex_hook(Path.cwd(), result.context_home)
+            codex_changed = install_codex_user_hook(Path.home() / ".codex", result.context_home)
             claude_changed = install_claude_code_hook(Path.home() / ".claude" / "settings.json", result.context_home)
             print(f"codex hook: {'updated' if codex_changed else 'unchanged'}")
             print("codex hook trust: run /hooks in Codex and approve the context-harness hook if prompted")
@@ -135,18 +149,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "hooks" and args.hooks_command == "install":
         context_home = resolve_context_home(args.context_home)
         if args.source == "codex":
-            project_root = Path(args.project_root).expanduser().resolve()
-            changed = install_codex_hook(project_root, context_home)
+            if _project_scope_requested(args):
+                changed = install_codex_hook(_project_root(args), context_home)
+            else:
+                changed = install_codex_user_hook(Path.home() / ".codex", context_home)
             print(f"codex hook: {'updated' if changed else 'unchanged'}")
             print("codex hook trust: run /hooks in Codex and approve the context-harness hook if prompted")
             return 0
 
         if args.source == "claude-code":
-            settings_path = (
-                Path(args.claude_settings).expanduser().resolve()
-                if args.claude_settings
-                else Path.home() / ".claude" / "settings.json"
-            )
+            if args.claude_settings:
+                settings_path = Path(args.claude_settings).expanduser().resolve()
+            elif _project_scope_requested(args):
+                settings_path = _project_root(args) / ".claude" / "settings.json"
+            else:
+                settings_path = Path.home() / ".claude" / "settings.json"
             changed = install_claude_code_hook(settings_path, context_home)
             print(f"claude-code hook: {'updated' if changed else 'unchanged'}")
             return 0
