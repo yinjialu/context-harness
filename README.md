@@ -2,7 +2,7 @@
 
 [中文文档](README.zh-CN.md)
 
-![context-harness shared context loop: Claude Code and Codex conversations are collected into one memory and shared back across agents](assets/context-loop-illustrations/01-context-loop.png)
+![context-harness shared context loop: Claude Code and Codex conversations are collected into one memory and shared back across agents](assets/context-loop-illustrations/01-context-loop-en.png)
 
 `context-harness` is a local-first personal AI context tool. It archives conversations from your local AI coding assistants so they can be synced, searched, and turned into useful memory later.
 
