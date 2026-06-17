@@ -202,11 +202,31 @@ uv run pytest
 
 PR 应满足：
 
+- PR 尽量添加 `agent-backup-adapter` label，并在 PR body 中写 `Source id: <source>`。
 - 新 source 能通过 `uv run context-harness --context-home <tmp-home> sync <source> --latest 1` 生成 Markdown archive。
 - `--all` 和 hook stdin 场景行为清晰；没有 hook 时文档明确说明。
 - `config.toml` 默认值、README、skills、测试保持一致。
 - 没有提交真实 conversation、memory、state、logs、`.context-harness` 或本机私有配置。
 - `uv run pytest` 通过；如果无法运行，PR 描述中说明原因和未验证风险。
+
+## GitHub 自动 Review
+
+仓库提供轻量版自动 review workflow：`.github/workflows/agent-backup-adapter-review.yml`。它在 PR 上运行，不 checkout 或执行 PR 代码，只读取 PR metadata 和 changed files，然后用 GitHub bot 评论 adapter checklist。
+
+触发信号包括：
+
+- PR label 包含 `agent-backup-adapter`。
+- PR title/body 提到 `adapt-agent-backup` 或 agent backup adapter。
+- PR 新增或修改 `context_harness/collectors/<source>.py`。
+- PR 修改 collector tests。
+
+轻量 review 会检查 source id、collector、CLI/config/init、双语 README、skills、tests/fixtures、私有数据路径、hook 说明和 `uv run pytest` 说明。
+
+AI review 是增强项，不作为轻量 workflow 的硬依赖：
+
+- 如果仓库启用了 Codex GitHub integration，可以在 PR 中评论 `@codex review`。
+- 如果仓库启用了 Claude Code GitHub Actions，可以在 PR 中评论 `@claude review this adapter PR against the adapt-agent-backup checklist`。
+- 两者任选其一即可作为额外 AI review 信号。
 
 ## 给其他 Agent 的推荐提示词
 

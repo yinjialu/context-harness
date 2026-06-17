@@ -78,11 +78,18 @@ Before editing, read:
    - Manually smoke test `uv run context-harness --context-home <tmp-home> sync <source> --latest 1` when a fixture or local sample is available.
    - Keep changes small and complete; do not refactor unrelated modules.
 
+11. Prepare the PR for automated review.
+   - Add label `agent-backup-adapter` when possible.
+   - Include `Source id: <source>` in the PR body.
+   - Include transcript path/format assumptions, hook support status, verification commands, and remaining risks.
+   - Optional AI review enhancement: if the repository has Codex GitHub integration enabled, comment `@codex review`; if Claude Code GitHub Actions is enabled, comment `@claude review this adapter PR against the adapt-agent-backup checklist`. Either one is acceptable as an extra AI review signal.
+
 ## PR Checklist
 
 - The adapter produces Markdown archives in `context_home/conversations/<source>/`.
 - The adapter writes incremental state to `context_home/state/<source>-sync-state.json`.
 - README supported-Agent lists, examples, default config, skills, CLI choices, and tests all use the same source id.
 - Real user transcripts, memory, logs, state, and private machine config are not committed.
+- PR has label `agent-backup-adapter` when labels are available, and its body includes `Source id: <source>`.
 - PR description states transcript format assumptions, hook support status, commands run, and remaining risks.
 - The diff avoids unrelated rewrites and leaves existing behavior intact outside the new adapter path.

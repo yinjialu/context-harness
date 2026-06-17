@@ -1,0 +1,192 @@
+name: Agent Backup Adapter Review
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+      - ready_for_review
+      - labeled
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  lightweight-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Review adapter PR shape
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = "<!-- context-harness-agent-backup-adapter-review -->"
+            const pr = context.payload.pull_request
+            const owner = context.repo.owner
+            const repo = context.repo.repo
+            const pull_number = pr.number
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number,
+              per_page: 100,
+            })
+            const paths = files.map((file) => file.filename)
+            const labels = pr.labels.map((label) => label.name)
+            const body = pr.body || ""
+            const titleAndBody = `${pr.title}\n${body}`
+
+            const changed = (path) => paths.includes(path)
+            const changedPrefix = (prefix) => paths.some((path) => path.startsWith(prefix))
+            const changedMatch = (regex) => paths.some((path) => regex.test(path))
+
+            const collectorFiles = paths.filter((path) =>
+              /^context_harness\/collectors\/[^/]+\.py$/.test(path) &&
+              !path.endsWith("/codex.py") &&
+              !path.endsWith("/claude_code.py") &&
+              !path.endsWith("/__init__.py")
+            )
+            const inferredSource = collectorFiles[0]
+              ?.split("/")
+              .pop()
+              ?.replace(/\.py$/, "")
+              ?.replaceAll("_", "-")
+            const explicitSource = titleAndBody.match(/(?:source id|source_id|adapted source id|source)\s*[:=-]\s*`?([a-z0-9][a-z0-9-]*)`?/i)?.[1]
+            const sourceId = explicitSource || inferredSource || ""
+
+            const isAdapterPr =
+              labels.includes("agent-backup-adapter") ||
+              /adapt-agent-backup|agent backup adapter|conversation backup adapter/i.test(titleAndBody) ||
+              collectorFiles.length > 0 ||
+              changedMatch(/^tests\/test_.*collector\.py$/)
+
+            if (!isAdapterPr) {
+              core.info("No agent backup adapter signals found; skipping lightweight review comment.")
+              return
+            }
+
+            const privateDataPatterns = [
+              /(^|\/)\.context-harness(\/|$)/,
+              /(^|\/)context-home(\/|$)/,
+              /(^|\/)conversations(\/|$)/,
+              /(^|\/)memory(\/|$)/,
+              /(^|\/)state(\/|$)/,
+              /(^|\/)logs(\/|$)/,
+              /(^|\/)exports(\/|$)/,
+              /(^|\/)[^.][^/]*-sync-state\.json$/,
+              /\.db$/,
+              /\.sqlite3?$/,
+              /\.log$/,
+            ]
+            const privateDataFiles = paths.filter((path) => privateDataPatterns.some((regex) => regex.test(path)))
+            const jsonlOutsideFixtures = paths.filter((path) => path.endsWith(".jsonl") && !path.startsWith("tests/fixtures/"))
+
+            const checks = [
+              {
+                name: "Adapter PR marker",
+                pass: labels.includes("agent-backup-adapter") || /adapt-agent-backup/i.test(titleAndBody),
+                note: "Prefer label `agent-backup-adapter` or mention `adapt-agent-backup` in the PR body.",
+              },
+              {
+                name: "Source id is discoverable",
+                pass: Boolean(sourceId),
+                note: sourceId ? `Detected \`${sourceId}\`.` : "Add `Source id: <source>` to the PR body or include a new collector file.",
+              },
+              {
+                name: "Collector changed",
+                pass: collectorFiles.length > 0,
+                note: collectorFiles.length > 0 ? collectorFiles.map((path) => `\`${path}\``).join(", ") : "Expected `context_harness/collectors/<source>.py` for a new adapter.",
+              },
+              {
+                name: "CLI/config/init touched",
+                pass: changed("context_harness/cli.py") && changed("context_harness/config.py") && changed("context_harness/init.py"),
+                note: "New sources usually need all three files updated.",
+              },
+              {
+                name: "Bilingual README touched",
+                pass: changed("README.md") && changed("README.zh-CN.md"),
+                note: "Keep supported-Agent lists, commands, and config examples in sync.",
+              },
+              {
+                name: "Agent-facing skills touched",
+                pass: changed("skills/init-context/SKILL.md") && changed("skills/sync-conversations/SKILL.md"),
+                note: "Adapter PRs should update install/sync workflow instructions.",
+              },
+              {
+                name: "Tests and fixtures touched",
+                pass: changedPrefix("tests/") && changedMatch(/^tests\/fixtures\//),
+                note: "Use synthetic or anonymized fixtures only.",
+              },
+              {
+                name: "No private data paths",
+                pass: privateDataFiles.length === 0 && jsonlOutsideFixtures.length === 0,
+                note: [...privateDataFiles, ...jsonlOutsideFixtures].map((path) => `\`${path}\``).join(", ") || "No obvious private data files detected.",
+              },
+              {
+                name: "Verification documented",
+                pass: /uv run pytest|pytest/i.test(body),
+                note: "PR body should say whether `uv run pytest` passed or why it could not run.",
+              },
+              {
+                name: "Hook support documented",
+                pass: /hook/i.test(body),
+                note: "PR body should state whether the source supports hooks or is manual sync only.",
+              },
+              {
+                name: "Optional AI review path",
+                pass: /@codex\s+review|@claude|ai review|AI review/i.test(titleAndBody),
+                note: "Optional: request `@codex review` or `@claude` when the repository integration is enabled.",
+              },
+            ]
+
+            const result = (pass) => (pass ? "PASS" : "WARN")
+            const rows = checks
+              .map((check) => `| ${result(check.pass)} | ${check.name} | ${check.note} |`)
+              .join("\n")
+            const blockers = checks.filter((check) => check.name === "No private data paths" && !check.pass)
+
+            const comment = [
+              marker,
+              "### Agent Backup Adapter Lightweight Review",
+              "",
+              `Detected source: ${sourceId ? `\`${sourceId}\`` : "_not detected_"}`,
+              "",
+              "| Status | Check | Notes |",
+              "| --- | --- | --- |",
+              rows,
+              "",
+              "This lightweight review is intentionally deterministic: it checks PR shape, docs/test coverage signals, and obvious private-data risks without running untrusted PR code.",
+              "",
+              "**AI review enhancement:** if this repository has Codex GitHub integration enabled, comment `@codex review`. If Claude Code GitHub Actions is enabled, comment `@claude review this adapter PR against the adapt-agent-backup checklist`. Either review path is acceptable as an extra human-readable review signal.",
+            ].join("\n")
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: pull_number,
+              per_page: 100,
+            })
+            const previous = comments.find((item) => item.user?.type === "Bot" && item.body?.includes(marker))
+            if (previous) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: previous.id,
+                body: comment,
+              })
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pull_number,
+                body: comment,
+              })
+            }
+
+            if (blockers.length > 0) {
+              core.setFailed("Adapter PR appears to include private data or local state files.")
+            }

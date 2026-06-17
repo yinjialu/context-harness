@@ -182,6 +182,8 @@ global_context_file = "global-claude.md"
 请使用仓库内的 `adapt-agent-backup` skill，为你当前运行所在的 coding Agent 增加本地 conversation 备份适配，并提交 PR。
 ```
 
+适配类 PR 如果修改 collector 相关文件，或带有 `agent-backup-adapter` label，会触发轻量 GitHub bot checklist。需要增强版 AI review 时，如果仓库启用了对应集成，可以评论 `@codex review`，或评论 `@claude review this adapter PR against the adapt-agent-backup checklist`。
+
 ## Codex Plugin
 
 这个仓库也可以作为 Codex plugin 使用。插件 manifest 位于 `.codex-plugin/plugin.json`，并暴露仓库内的 `skills/` 目录。

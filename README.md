@@ -180,6 +180,8 @@ Please clone and inspect https://github.com/yinjialu/context-harness.
 Use the repository's `adapt-agent-backup` skill to add local conversation backup support for the coding Agent you are currently running in, then submit a PR.
 ```
 
+Adapter PRs get a lightweight GitHub bot checklist when they touch collector-style files or use the `agent-backup-adapter` label. For optional AI review, comment `@codex review` or `@claude review this adapter PR against the adapt-agent-backup checklist` when that integration is enabled.
+
 ## Codex Plugin
 
 This repository is also a Codex plugin. Its plugin manifest lives at `.codex-plugin/plugin.json` and exposes the repository's `skills/` directory.
