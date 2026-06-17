@@ -271,6 +271,13 @@ def test_cli_init_install_hooks_writes_codex_user_hook(tmp_path, monkeypatch):
     assert (tmp_path / ".codex" / "hooks.json").exists()
     settings = json.loads((tmp_path / ".claude" / "settings.json").read_text(encoding="utf-8"))
     assert "sync claude-code --hook-stdin" in settings["hooks"]["Stop"][0]["hooks"][0]["command"]
+    # init binds global-claude.md into the (redirected) user-level CLAUDE.md, not the real one.
+    claude_md = tmp_path / ".claude" / "CLAUDE.md"
+    assert claude_md.exists()
+    assert f"@{(context_home / 'global-claude.md').resolve()}" in claude_md.read_text(encoding="utf-8")
+    codex_agents = tmp_path / ".codex" / "AGENTS.md"
+    assert codex_agents.exists()
+    assert str((context_home / "global-claude.md").resolve()) in codex_agents.read_text(encoding="utf-8")
 
 
 def test_cli_dream_prints_skill_hint(capsys):
