@@ -1,0 +1,34 @@
+name: Publish Codex Plugin Marketplace
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build marketplace tree
+        run: python3 scripts/build_codex_plugin_marketplace.py
+
+      - name: Publish codex-plugin branch
+        run: |
+          set -eu
+          cd dist/codex-plugin-marketplace
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Publish Codex plugin marketplace"
+          git branch -M codex-plugin
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin codex-plugin
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

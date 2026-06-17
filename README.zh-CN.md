@@ -120,6 +120,70 @@ global_context_file = "global-claude.md"
 
 这些 skills 只负责描述 Agent 工作流，实际能力由 CLI 提供，避免把业务逻辑散落到多个 Agent prompt 里。
 
+## Codex Plugin
+
+这个仓库也可以作为 Codex plugin 使用。插件 manifest 位于 `.codex-plugin/plugin.json`，并暴露仓库内的 `skills/` 目录。
+
+### 公开社区安装
+
+Codex 目前还不支持把第三方插件自助发布到官方公开 Plugin Directory。面向社区分发时，先发布 Git marketplace，让用户添加一次：
+
+```bash
+codex plugin marketplace add yinjialu/context-harness --ref codex-plugin
+```
+
+添加 marketplace 后，用户可以打开 Codex 的 Plugins 页面，切换到 `Context Harness` marketplace source，搜索 `context-harness` 并安装。也可以通过 CLI 安装：
+
+```bash
+codex plugin add context-harness@context-harness
+```
+
+更新已有安装：
+
+```bash
+codex plugin marketplace upgrade context-harness
+codex plugin add context-harness@context-harness
+```
+
+### Workspace 分享
+
+如果希望同一个 ChatGPT workspace 里的队友可以直接从 Codex app 安装：
+
+1. 先在本机安装插件。
+2. 打开 Codex Plugins 页面。
+3. 进入 `Created by you` 并打开 `Context Harness`。
+4. 选择 `Share`。
+5. 添加 workspace 成员或用户组，或复制分享链接。
+
+被分享的人可以在 Codex plugin directory 的 `Shared with you` 中找到并安装该插件。Workspace 分享不会把插件发布到公开 Plugin Directory。
+
+### 发布 marketplace 分支
+
+`codex-plugin` 分支由 `scripts/build_codex_plugin_marketplace.py` 从当前仓库生成。维护者也可以手动发布：
+
+```bash
+python3 scripts/build_codex_plugin_marketplace.py
+cd dist/codex-plugin-marketplace
+git init
+git add .
+git commit -m "Publish Codex plugin marketplace"
+git branch -M codex-plugin
+git remote add origin git@github.com:yinjialu/context-harness.git
+git push --force origin codex-plugin
+```
+
+GitHub Actions workflow 会在推送 `v*` tag 时发布该分支，也支持手动触发。
+
+本地开发时，可以通过个人 Codex marketplace 注册当前 checkout：
+
+```bash
+mkdir -p ~/plugins
+ln -sfn /path/to/context-harness ~/plugins/context-harness
+codex plugin add context-harness@personal
+```
+
+这种 symlink 方式会保持当前仓库作为唯一源码，同时匹配 Codex 个人 marketplace 的标准路径布局。
+
 为了让 repo-local skill 自动发现，仓库同时提供了两组相对 symlink：
 
 ```text

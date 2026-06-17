@@ -118,6 +118,70 @@ This repository includes three Agent-facing skills:
 
 The skills describe Agent workflows. The CLI owns the actual behavior, so business logic stays in one place.
 
+## Codex Plugin
+
+This repository is also a Codex plugin. Its plugin manifest lives at `.codex-plugin/plugin.json` and exposes the repository's `skills/` directory.
+
+### Public community install
+
+Codex does not currently support self-serve publishing into the official public Plugin Directory. For community distribution, publish the Git marketplace and ask users to add it once:
+
+```bash
+codex plugin marketplace add yinjialu/context-harness --ref codex-plugin
+```
+
+After adding the marketplace, users can open the Codex Plugins page, switch to the `Context Harness` marketplace source, search for `context-harness`, and install it there. They can also install it from the CLI:
+
+```bash
+codex plugin add context-harness@context-harness
+```
+
+Update an existing installation:
+
+```bash
+codex plugin marketplace upgrade context-harness
+codex plugin add context-harness@context-harness
+```
+
+### Workspace sharing
+
+To make the plugin installable directly from the Codex app for teammates in the same ChatGPT workspace:
+
+1. Install the plugin locally.
+2. Open the Codex Plugins page.
+3. Go to `Created by you` and open `Context Harness`.
+4. Select `Share`.
+5. Add workspace members or groups, or copy a share link.
+
+People you share with can find the plugin under `Shared with you` in the Codex plugin directory. Workspace sharing does not publish the plugin to the public Plugin Directory.
+
+### Publishing the marketplace branch
+
+The `codex-plugin` branch is generated from this repository by `scripts/build_codex_plugin_marketplace.py`. Maintainers can publish it manually:
+
+```bash
+python3 scripts/build_codex_plugin_marketplace.py
+cd dist/codex-plugin-marketplace
+git init
+git add .
+git commit -m "Publish Codex plugin marketplace"
+git branch -M codex-plugin
+git remote add origin git@github.com:yinjialu/context-harness.git
+git push --force origin codex-plugin
+```
+
+The GitHub Actions workflow also publishes that branch when a `v*` tag is pushed, or when the workflow is run manually.
+
+For local development, register the current checkout through the personal Codex marketplace:
+
+```bash
+mkdir -p ~/plugins
+ln -sfn /path/to/context-harness ~/plugins/context-harness
+codex plugin add context-harness@personal
+```
+
+The symlink keeps the current repository as the single source of truth while matching Codex's standard personal marketplace path layout.
+
 For repo-local discovery, the repository also provides relative symlinks:
 
 ```text

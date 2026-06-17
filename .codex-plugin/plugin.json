@@ -1,0 +1,40 @@
+{
+  "name": "context-harness",
+  "version": "0.1.7",
+  "description": "Local-first personal AI context loop for Code Agent conversations.",
+  "author": {
+    "name": "Jialu Yin",
+    "url": "https://github.com/yinjialu"
+  },
+  "homepage": "https://github.com/yinjialu/context-harness",
+  "repository": "https://github.com/yinjialu/context-harness",
+  "license": "MIT",
+  "keywords": [
+    "context",
+    "memory",
+    "codex",
+    "claude-code",
+    "conversation-sync"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Context Harness",
+    "shortDescription": "Sync and maintain local AI conversation context.",
+    "longDescription": "Context Harness adds Codex skills for initializing a local context home, syncing Codex and Claude Code conversations, installing sync hooks, and proposing durable memory/profile updates.",
+    "developerName": "Jialu Yin",
+    "category": "Productivity",
+    "capabilities": [
+      "Skills",
+      "Local Files",
+      "Conversation Sync",
+      "Memory Workflows"
+    ],
+    "websiteURL": "https://github.com/yinjialu/context-harness",
+    "brandColor": "#2563EB",
+    "defaultPrompt": [
+      "Initialize my context-harness setup.",
+      "Sync my latest Codex conversations.",
+      "Review conversations and propose memory updates."
+    ]
+  }
+}
