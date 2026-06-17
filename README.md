@@ -218,3 +218,7 @@ Claude Code hook 默认写入 `~/.claude/settings.json`。Stop hook 会读取 ho
 
 - [docs/superpowers/specs/2026-06-16-context-harness-design.md](docs/superpowers/specs/2026-06-16-context-harness-design.md)
 - [docs/superpowers/plans/2026-06-16-context-harness-v1-core.md](docs/superpowers/plans/2026-06-16-context-harness-v1-core.md)
+
+## License
+
+MIT
