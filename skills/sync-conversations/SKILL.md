@@ -1,6 +1,6 @@
 ---
 name: sync-conversations
-description: Sync local Codex and Claude Code conversation records into a context-harness data home. Use when the user asks to back up Code Agent conversations, sync Codex sessions, sync Claude Code sessions, run full or incremental conversation backup, or inspect context-harness sync status.
+description: Sync local Codex, Claude Code, and OpenCode conversation records into a context-harness data home. Use when the user asks to back up Code Agent conversations, sync Codex sessions, sync Claude Code sessions, sync OpenCode sessions, run full or incremental conversation backup, or inspect context-harness sync status.
 license: MIT
 ---
 
@@ -32,6 +32,9 @@ V1 supports:
 
 - `codex`
 - `claude-code`
+- `opencode` (manual sync from the local OpenCode SQLite database)
+
+OpenCode sync reads `~/.local/share/opencode/opencode.db` by default. It is currently manual because OpenCode does not expose a stable stop hook compatible with this CLI.
 
 Claude Web, Antigravity, ChatGPT, Gemini, and browser exports are outside V1.
 
@@ -52,6 +55,7 @@ Incremental sync:
 ```bash
 uv run context-harness --context-home <context-home> sync codex --latest 1
 uv run context-harness --context-home <context-home> sync claude-code --latest 1
+uv run context-harness --context-home <context-home> sync opencode --latest 1
 ```
 
 Full sync:
@@ -59,6 +63,7 @@ Full sync:
 ```bash
 uv run context-harness --context-home <context-home> sync codex --all
 uv run context-harness --context-home <context-home> sync claude-code --all
+uv run context-harness --context-home <context-home> sync opencode --all
 ```
 
 After running, summarize `checked`, `created`, `updated`, `skipped`, and `output_dir`.

@@ -8,6 +8,7 @@ Supported local AI coding assistants:
 
 - <a href="https://developers.openai.com/codex/app"><img src="https://developers.openai.com/favicon.png" alt="" width="16" height="16" align="absmiddle"></a> [Codex](https://developers.openai.com/codex/app)
 - <a href="https://docs.anthropic.com/en/docs/claude-code/overview"><img src="https://www.anthropic.com/favicon.ico" alt="" width="16" height="16" align="absmiddle"></a> [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
+- [OpenCode](https://opencode.ai/docs/)
 
 The project keeps the tool itself separate from your personal data. This repository contains the program; your conversations, memory, logs, and sync state live in a configurable data directory such as `~/.context-harness`.
 
@@ -97,6 +98,14 @@ Sync the latest Claude Code conversation:
 uv run context-harness --context-home ~/.context-harness sync claude-code --latest 1
 ```
 
+Sync the latest OpenCode conversation from the local OpenCode SQLite database:
+
+```bash
+uv run context-harness --context-home ~/.context-harness sync opencode --latest 1
+```
+
+OpenCode sync reads `~/.local/share/opencode/opencode.db` by default. It is currently manual because OpenCode does not expose a stable stop hook compatible with this CLI.
+
 Install automatic sync hooks:
 
 ```bash
@@ -113,7 +122,7 @@ CONTEXT_HARNESS_HOME=~/Documents/my-context uv run context-harness init
 uv run context-harness --context-home ~/Documents/my-context init
 ```
 
-`--context-home` takes precedence over `CONTEXT_HARNESS_HOME`. After initialization, edit `config.toml` in the data home to customize Codex / Claude Code source paths and archive output paths.
+`--context-home` takes precedence over `CONTEXT_HARNESS_HOME`. After initialization, edit `config.toml` in the data home to customize Codex / Claude Code / OpenCode source paths and archive output paths.
 
 Example:
 
@@ -127,6 +136,11 @@ output_dir = "conversations/codex"
 enabled = true
 projects_dir = "~/Documents/claude-code-projects"
 output_dir = "conversations/claude-code"
+
+[sources.opencode]
+enabled = true
+data_dir = "~/.local/share/opencode"
+output_dir = "conversations/opencode"
 
 [memory]
 profile_file = "memory/user_profile.md"
@@ -146,12 +160,14 @@ After initialization, the data home looks roughly like this:
   conversations/
     codex/
     claude-code/
+    opencode/
   memory/
     MEMORY.md
     user_profile.md
   state/
     codex-sync-state.json
     claude-code-sync-state.json
+    opencode-sync-state.json
 ```
 
 - `conversations/` stores Markdown archives rendered from Code Agent transcripts.
@@ -163,7 +179,7 @@ After initialization, the data home looks roughly like this:
 
 This repository includes four Agent-facing skills:
 
-- `skills/init-context`: initialize the data home and optionally install Codex / Claude Code hooks.
+- `skills/init-context`: initialize the data home and optionally install Codex / Claude Code hooks. OpenCode sync is manual because OpenCode does not currently expose a compatible stop hook.
 - `skills/sync-conversations`: manually run full or incremental conversation sync.
 - `skills/profile-dreamer`: extract profile and memory update proposals from archived conversations.
 - `skills/adapt-agent-backup`: guide another Agent through adding a new local Code Agent backup adapter.

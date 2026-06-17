@@ -23,6 +23,10 @@ class SourceConfig:
     def projects_dir(self) -> Path:
         return self.input_dir
 
+    @property
+    def data_dir(self) -> Path:
+        return self.input_dir
+
 
 @dataclass(frozen=True)
 class MemoryConfig:
@@ -35,6 +39,7 @@ class AppConfig:
     context_home: Path
     codex: SourceConfig
     claude_code: SourceConfig
+    opencode: SourceConfig
     memory: MemoryConfig
 
 
@@ -69,6 +74,7 @@ def load_config(context_home: str | Path | None = None) -> AppConfig:
 
     codex_raw = raw.get("sources", {}).get("codex", {})
     claude_raw = raw.get("sources", {}).get("claude-code", {})
+    opencode_raw = raw.get("sources", {}).get("opencode", {})
     memory_raw = raw.get("memory", {})
 
     codex = SourceConfig(
@@ -81,6 +87,11 @@ def load_config(context_home: str | Path | None = None) -> AppConfig:
         input_dir=_resolve_path(resolved_home, claude_raw.get("projects_dir", "~/.claude/projects")),
         output_dir=_resolve_path(resolved_home, claude_raw.get("output_dir", "conversations/claude-code")),
     )
+    opencode = SourceConfig(
+        enabled=bool(opencode_raw.get("enabled", True)),
+        input_dir=_resolve_path(resolved_home, opencode_raw.get("data_dir", "~/.local/share/opencode")),
+        output_dir=_resolve_path(resolved_home, opencode_raw.get("output_dir", "conversations/opencode")),
+    )
     memory = MemoryConfig(
         profile_file=_resolve_path(resolved_home, memory_raw.get("profile_file", "memory/user_profile.md")),
         global_context_file=_resolve_path(resolved_home, memory_raw.get("global_context_file", "global-claude.md")),
@@ -90,5 +101,6 @@ def load_config(context_home: str | Path | None = None) -> AppConfig:
         context_home=resolved_home,
         codex=codex,
         claude_code=claude_code,
+        opencode=opencode,
         memory=memory,
     )

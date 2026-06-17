@@ -1,9 +1,36 @@
 import json
+import sqlite3
 import sys
 from io import StringIO
 from pathlib import Path
 
 from context_harness.cli import main
+
+
+def _create_opencode_cli_db(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(path)
+    connection.executescript(
+        """
+        create table session (id text primary key, title text not null, directory text not null, agent text, model text, time_created integer not null, time_updated integer not null);
+        create table message (id text primary key, session_id text not null, time_created integer not null, time_updated integer not null, data text not null);
+        create table part (id text primary key, message_id text not null, session_id text not null, time_created integer not null, time_updated integer not null, data text not null);
+        """
+    )
+    connection.execute(
+        "insert into session values (?, ?, ?, ?, ?, ?, ?)",
+        ("ses_cli", "CLI Session", "/tmp/project", "build", "openai/gpt-5.5", 1781596800000, 1781596920000),
+    )
+    connection.execute(
+        "insert into message values (?, ?, ?, ?, ?)",
+        ("msg-cli-user", "ses_cli", 1781596860000, 1781596860000, json.dumps({"role": "user"})),
+    )
+    connection.execute(
+        "insert into part values (?, ?, ?, ?, ?, ?)",
+        ("part-cli-user", "msg-cli-user", "ses_cli", 1781596860000, 1781596860000, json.dumps({"type": "text", "text": "CLI opencode prompt"})),
+    )
+    connection.commit()
+    connection.close()
 
 
 def test_cli_sync_codex(tmp_path, capsys):
@@ -168,6 +195,52 @@ output_dir = "conversations/claude-code"
     content = archive.read_text(encoding="utf-8")
     assert "Target Session" in content
     assert "Newer Session" not in content
+
+
+def test_cli_sync_opencode(tmp_path, capsys):
+    context_home = tmp_path / "home"
+    data_dir = tmp_path / "opencode"
+    _create_opencode_cli_db(data_dir / "opencode.db")
+    context_home.mkdir()
+    (context_home / "config.toml").write_text(
+        f"""[sources.opencode]
+enabled = true
+data_dir = "{data_dir}"
+output_dir = "conversations/opencode"
+""",
+        encoding="utf-8",
+    )
+
+    code = main(["--context-home", str(context_home), "sync", "opencode", "--latest", "1"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "source=opencode" in captured.out
+    assert "checked=1" in captured.out
+    assert "created=1" in captured.out
+    assert list((context_home / "conversations" / "opencode").glob("*.md"))
+
+
+def test_cli_sync_opencode_respects_disabled_source(tmp_path, capsys):
+    context_home = tmp_path / "home"
+    data_dir = tmp_path / "opencode"
+    _create_opencode_cli_db(data_dir / "opencode.db")
+    context_home.mkdir()
+    (context_home / "config.toml").write_text(
+        f"""[sources.opencode]
+enabled = false
+data_dir = "{data_dir}"
+output_dir = "conversations/opencode"
+""",
+        encoding="utf-8",
+    )
+
+    code = main(["--context-home", str(context_home), "sync", "opencode", "--latest", "1"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "source=opencode checked=0 created=0 updated=0 skipped=0" in captured.out
+    assert not (context_home / "conversations" / "opencode").exists()
 
 
 def test_cli_hooks_install_codex_writes_user_config_by_default(tmp_path, monkeypatch):
