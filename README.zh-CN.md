@@ -2,6 +2,8 @@
 
 [English](README.md)
 
+![context-harness 共享上下文闭环：汇总 Claude Code 和 Codex 对话到同一份 memory，再跨 Agent 共享回流](assets/context-loop-illustrations/01-context-loop.png)
+
 `context-harness` 是一个本地优先的个人 AI 上下文工具。它可以把你在本机 AI 编程助手里的对话归档下来，方便之后同步、检索和整理记忆。
 
 已支持的本地 AI 编程助手：
