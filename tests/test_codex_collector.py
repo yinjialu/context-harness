@@ -140,8 +140,27 @@ def test_sync_codex_bounds_archive_filename_for_long_titles(tmp_path):
     archives = list(output_dir.glob("*.md"))
     assert result.created == 1
     assert len(archives) == 1
-    assert len(archives[0].name) < 160
-    assert archives[0].name.startswith("2026-06-16-session-with-a-long-stable-id-")
+    assert archives[0].name == "20260616_session-.md"
+
+
+def test_sync_codex_removes_stale_archive_when_filename_scheme_changes(tmp_path):
+    sessions_dir = tmp_path / "sessions"
+    _write_session(sessions_dir / "long.jsonl", "session-with-a-long-stable-id", "Old Long Name", "hello")
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+    old_archive = output_dir / "2026-06-16-session-with-a-long-stable-id-old-long-name.md"
+    old_archive.write_text("old", encoding="utf-8")
+    state_path = tmp_path / "state.json"
+    state_path.write_text(
+        '{"codex":{"session-with-a-long-stable-id":{"archive":"2026-06-16-session-with-a-long-stable-id-old-long-name.md","message_count":0,"source_path":"old"}}}',
+        encoding="utf-8",
+    )
+
+    result = sync_codex(sessions_dir, output_dir, state_path, latest=1)
+
+    assert result.updated == 1
+    assert not old_archive.exists()
+    assert (output_dir / "20260616_session-.md").exists()
 
 
 def test_sync_codex_counts_noise_files_as_checked_without_creating_archive(tmp_path):

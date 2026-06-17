@@ -115,11 +115,17 @@ def _read_codex_session(path: Path) -> Conversation | None:
 
 
 def _archive_path(output_dir: Path, conversation: Conversation) -> Path:
-    date = conversation.created_at.strftime("%Y-%m-%d")
-    short_id = _safe_name(conversation.session_id)[:32]
-    slug = _safe_name(conversation.title)[:80]
-    name = "-".join(part for part in [date, short_id, slug] if part)
-    return output_dir / f"{name}.md"
+    date = conversation.created_at.strftime("%Y%m%d")
+    short_id = _safe_name(conversation.session_id)[:8]
+    return output_dir / f"{date}_{short_id}.md"
+
+
+def _remove_stale_archive(output_dir: Path, previous_archive: str | None, archive_path: Path) -> None:
+    if not previous_archive or previous_archive == archive_path.name:
+        return
+    stale_path = output_dir / previous_archive
+    if stale_path.exists() and stale_path.is_file():
+        stale_path.unlink()
 
 
 def sync_codex(
@@ -160,6 +166,7 @@ def sync_codex(
 
         existed = archive_path.exists()
         archive_path.write_text(render_conversation(conversation), encoding="utf-8")
+        _remove_stale_archive(output_dir, previous.get("archive"), archive_path)
         codex_state[conversation.session_id] = {
             "archive": archive_path.name,
             "message_count": message_count,

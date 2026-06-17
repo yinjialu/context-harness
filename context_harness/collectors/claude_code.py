@@ -129,14 +129,28 @@ def _source_key(projects_dir: Path, source_path: Path, conversation: Conversatio
     return f"{conversation.session_id}:{relative_path.as_posix()}"
 
 
-def _archive_path(output_dir: Path, conversation: Conversation, source_path: Path, source_key: str) -> Path:
-    date = conversation.created_at.strftime("%Y-%m-%d")
-    short_id = _safe_name(conversation.session_id)[:32]
-    source_stem = _safe_name(source_path.stem)[:40]
+def _archive_path(
+    output_dir: Path,
+    conversation: Conversation,
+    source_key: str,
+    previous_archive: str | None = None,
+) -> Path:
+    date = conversation.created_at.strftime("%Y%m%d")
+    short_id = _safe_name(conversation.session_id)[:8]
+    base_path = output_dir / f"{date}_{short_id}.md"
+    if previous_archive == base_path.name or not base_path.exists():
+        return base_path
+
     source_digest = sha1(source_key.encode("utf-8")).hexdigest()[:10]
-    slug = _safe_name(conversation.title)[:80]
-    name = "-".join(part for part in [date, short_id, source_stem, source_digest, slug] if part)
-    return output_dir / f"{name}.md"
+    return output_dir / f"{date}_{short_id}_{source_digest}.md"
+
+
+def _remove_stale_archive(output_dir: Path, previous_archive: str | None, archive_path: Path) -> None:
+    if not previous_archive or previous_archive == archive_path.name:
+        return
+    stale_path = output_dir / previous_archive
+    if stale_path.exists() and stale_path.is_file():
+        stale_path.unlink()
 
 
 def sync_claude_code(
@@ -168,9 +182,9 @@ def sync_claude_code(
             continue
 
         source_key = _source_key(projects_dir, session_file, conversation)
-        archive_path = _archive_path(output_dir, conversation, session_file, source_key)
         message_count = len(conversation.messages)
         previous = claude_code_state.get(source_key, {})
+        archive_path = _archive_path(output_dir, conversation, source_key, previous.get("archive"))
 
         if previous.get("message_count") == message_count and archive_path.exists():
             skipped += 1
@@ -178,6 +192,7 @@ def sync_claude_code(
 
         existed = archive_path.exists()
         archive_path.write_text(render_conversation(conversation), encoding="utf-8")
+        _remove_stale_archive(output_dir, previous.get("archive"), archive_path)
         claude_code_state[source_key] = {
             "archive": archive_path.name,
             "message_count": message_count,

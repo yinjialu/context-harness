@@ -82,6 +82,8 @@ def test_sync_claude_code_keeps_subagent_files_with_shared_session_id_separate(t
     assert first.created == 2
     assert first.updated == 0
     assert len(archives) == 2
+    assert archives[0].name == "20260616_shared-s.md"
+    assert archives[1].name.startswith("20260616_shared-s_")
     assert any("parent" in archive.read_text(encoding="utf-8") for archive in archives)
     assert any("subagent" in archive.read_text(encoding="utf-8") for archive in archives)
     assert second.created == 0
@@ -214,8 +216,27 @@ def test_sync_claude_code_bounds_archive_filename_for_long_titles(tmp_path):
     archives = list(output_dir.glob("*.md"))
     assert result.created == 1
     assert len(archives) == 1
-    assert len(archives[0].name) < 180
-    assert archives[0].name.startswith("2026-06-16-session-with-a-long-stable-id-long-")
+    assert archives[0].name == "20260616_session-.md"
+
+
+def test_sync_claude_code_removes_stale_archive_when_filename_scheme_changes(tmp_path):
+    projects_dir = tmp_path / "projects"
+    _write_session(projects_dir / "-tmp-project" / "long.jsonl", "session-with-a-long-stable-id", "Old Long Name", "hello")
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+    old_archive = output_dir / "2026-06-16-session-with-a-long-stable-id-long-digest-old.md"
+    old_archive.write_text("old", encoding="utf-8")
+    state_path = tmp_path / "state.json"
+    state_path.write_text(
+        '{"claude-code":{"session-with-a-long-stable-id:-tmp-project/long.jsonl":{"archive":"2026-06-16-session-with-a-long-stable-id-long-digest-old.md","message_count":0,"source_path":"old"}}}',
+        encoding="utf-8",
+    )
+
+    result = sync_claude_code(projects_dir, output_dir, state_path, latest=1)
+
+    assert result.updated == 1
+    assert not old_archive.exists()
+    assert (output_dir / "20260616_session-.md").exists()
 
 
 def test_sync_claude_code_uses_title_events(tmp_path):

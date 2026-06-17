@@ -17,7 +17,7 @@ runtime_dir="$(bash scripts/bootstrap.sh)"
 cd "$runtime_dir"
 ```
 
-The script clones or updates the runtime repository at `~/.local/share/context-harness` by default, checks out `v0.1.3`, and runs `uv sync`.
+The script clones or updates the runtime repository at `~/.local/share/context-harness` by default, checks out `v0.1.4`, and runs `uv sync`.
 
 Overrides:
 
