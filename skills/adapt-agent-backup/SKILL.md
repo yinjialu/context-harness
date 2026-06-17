@@ -20,7 +20,9 @@ Before editing, read:
 
 1. Identify the source id.
    - Use lowercase kebab-case, for example `my-agent`.
-   - Derive the id from the target Agent name unless the user explicitly provides one.
+   - Infer the target Agent from the current runtime, app name, CLI name, repository metadata, process environment, or user prompt.
+   - Derive the id from that Agent name unless the user explicitly provides one.
+   - Ask the user for the target Agent only if it cannot be inferred with reasonable confidence.
    - Use the same id in config, CLI, output directories, state keys, tests, and docs.
 
 2. Check whether the source is already supported.

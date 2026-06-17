@@ -172,12 +172,12 @@ The skills describe Agent workflows. The CLI owns the actual behavior, so busine
 
 ### Copy-Ready Prompt: Add Agent Backup Support
 
-Copy this into any coding Agent. Replace `<target-agent>` with the Agent you want to support:
+Copy this into the coding Agent you want `context-harness` to support:
 
 ```text
 Please clone and inspect https://github.com/yinjialu/context-harness.
 
-Use the repository's `adapt-agent-backup` skill to add local conversation backup support for <target-agent>, then submit a PR.
+Use the repository's `adapt-agent-backup` skill to add local conversation backup support for the coding Agent you are currently running in, then submit a PR.
 ```
 
 ## Codex Plugin

@@ -6,7 +6,7 @@
 
 ```text
 请克隆 https://github.com/yinjialu/context-harness，使用 adapt-agent-backup skill，
-为 <target-agent> 完成本地 conversation 备份适配，并提交 PR。
+为你当前运行所在的 coding Agent 完成本地 conversation 备份适配，并提交 PR。
 ```
 
 ## 设计目标
@@ -213,5 +213,5 @@ PR 应满足：
 ```text
 请克隆并检查 https://github.com/yinjialu/context-harness。
 
-请使用仓库内的 `adapt-agent-backup` skill，为 <target-agent> 增加本地 conversation 备份适配，并提交 PR。
+请使用仓库内的 `adapt-agent-backup` skill，为你当前运行所在的 coding Agent 增加本地 conversation 备份适配，并提交 PR。
 ```

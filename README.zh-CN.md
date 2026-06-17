@@ -174,12 +174,12 @@ global_context_file = "global-claude.md"
 
 ### 一键复制提示词：增加 Agent 备份适配
 
-把下面这段提示词复制给任意 coding Agent，并把 `<target-agent>` 换成你想适配的 Agent：
+把下面这段提示词复制给你想让 `context-harness` 支持的 coding Agent：
 
 ```text
 请克隆并检查 https://github.com/yinjialu/context-harness。
 
-请使用仓库内的 `adapt-agent-backup` skill，为 <target-agent> 增加本地 conversation 备份适配，并提交 PR。
+请使用仓库内的 `adapt-agent-backup` skill，为你当前运行所在的 coding Agent 增加本地 conversation 备份适配，并提交 PR。
 ```
 
 ## Codex Plugin
