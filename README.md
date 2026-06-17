@@ -4,10 +4,10 @@
 
 `context-harness` is a local-first personal AI context tool. It archives conversations from your local AI coding assistants so they can be synced, searched, and turned into useful memory later.
 
-V1 currently supports two common local AI coding assistants:
+Supported local AI coding assistants:
 
-- Codex
-- Claude Code
+- <a href="https://developers.openai.com/codex/app"><img src="https://developers.openai.com/favicon.png" alt="" width="16" height="16" align="absmiddle"></a> [Codex](https://developers.openai.com/codex/app)
+- <a href="https://docs.anthropic.com/en/docs/claude-code/overview"><img src="https://www.anthropic.com/favicon.ico" alt="" width="16" height="16" align="absmiddle"></a> [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
 
 The project keeps the tool itself separate from your personal data. This repository contains the program; your conversations, memory, logs, and sync state live in a configurable data directory such as `~/.context-harness`.
 
@@ -169,6 +169,16 @@ This repository includes four Agent-facing skills:
 - `skills/adapt-agent-backup`: guide another Agent through adding a new local Code Agent backup adapter.
 
 The skills describe Agent workflows. The CLI owns the actual behavior, so business logic stays in one place.
+
+### Copy-Ready Prompt: Add Agent Backup Support
+
+Copy this into any coding Agent. Replace `<target-agent>` with the Agent you want to support:
+
+```text
+Please clone and inspect https://github.com/yinjialu/context-harness.
+
+Use the repository's `adapt-agent-backup` skill to add local conversation backup support for <target-agent>, then submit a PR.
+```
 
 ## Codex Plugin
 
@@ -400,7 +410,7 @@ context-harness --version
 
 ## Hooks
 
-V1 hooks automatically call the sync command at the right point in Codex and Claude Code lifecycle, then archive the new conversation into `context_home`.
+Hooks automatically call the sync command at the right point in each supported Code Agent lifecycle, then archive the new conversation into `context_home`.
 
 Hook installers use the same scope model for supported Code Agents: user-level by default, project-local when `--scope project` is passed. `--project-root` targets a different project; otherwise project-local install uses the current directory.
 

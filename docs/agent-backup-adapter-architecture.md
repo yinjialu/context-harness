@@ -6,7 +6,7 @@
 
 ```text
 请克隆 https://github.com/yinjialu/context-harness，使用 adapt-agent-backup skill，
-为 <agent-name> 完成本地 conversation 备份适配，并提交 PR。
+为 <target-agent> 完成本地 conversation 备份适配，并提交 PR。
 ```
 
 ## 设计目标
@@ -79,6 +79,12 @@ def sync_<source>(
 `session_path` 用于 hook 场景，优先级高于 `latest` 和 mtime 排序。
 
 ## 新 Agent 适配步骤
+
+### 0. 检查是否已经适配
+
+在新增代码前，先用目标 Agent 名称、source id 和常见别名搜索 `context_harness/`、`tests/`、`skills/`、`README.md`、`README.zh-CN.md`。重点检查 `context_harness/cli.py`、`context_harness/config.py`、`context_harness/init.py`、`context_harness/collectors/` 和 `context_harness/hooks/`。
+
+如果该 source 已经完整支持，不要重复新增 adapter；运行现有测试或 smoke command 并说明已支持即可。如果只有部分支持或测试失败，只修复缺失部分，并保持既有 source id、archive 路径和 state key 兼容。
 
 ### 1. 调研原始数据
 
@@ -164,6 +170,7 @@ Conversation(
 至少更新：
 
 - `README.md` 和 `README.zh-CN.md` 的支持列表、示例命令、配置示例、data layout、skills 描述。
+- 双语 README 顶部的 supported Agent 列表要补上新 source，优先使用目标 Agent 的官方产品或文档链接；图标优先使用官网或官方 docs 中声明的 favicon/logo URL。如果找不到可靠的官方图标 URL，使用纯文本链接，不要添加非官方素材。
 - 相关 skill，如 `skills/init-context/SKILL.md` 和 `skills/sync-conversations/SKILL.md`，补充新 source 的命令和限制。
 
 如果新 Agent 需要特殊安装步骤，优先让 CLI 承担行为，skill 只描述工作流。
@@ -204,16 +211,7 @@ PR 应满足：
 ## 给其他 Agent 的推荐提示词
 
 ```text
-请克隆 https://github.com/yinjialu/context-harness，使用仓库内的 adapt-agent-backup skill。
+请克隆并检查 https://github.com/yinjialu/context-harness。
 
-目标：为 <agent-name> 增加本地 conversation 备份适配。
-
-请先阅读 docs/agent-backup-adapter-architecture.md，然后：
-1. 调研 <agent-name> 的本机 transcript 路径、格式、消息字段和 hook 能力。
-2. 新增 collector、配置、CLI 注册和必要 hook。
-3. 更新 README、skills 和测试 fixture。
-4. 运行 uv run pytest。
-5. 提交一个小而完整的 PR，PR 描述包含数据格式假设、验证结果和未覆盖风险。
-
-不要提交真实用户 conversation、memory、state、logs 或本机私有配置。
+请使用仓库内的 `adapt-agent-backup` skill，为 <target-agent> 增加本地 conversation 备份适配，并提交 PR。
 ```

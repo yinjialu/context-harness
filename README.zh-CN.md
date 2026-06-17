@@ -4,10 +4,10 @@
 
 `context-harness` 是一个本地优先的个人 AI 上下文工具。它可以把你在本机 AI 编程助手里的对话归档下来，方便之后同步、检索和整理记忆。
 
-V1 先支持两个常见的本地 AI 编程助手：
+已支持的本地 AI 编程助手：
 
-- Codex
-- Claude Code
+- <a href="https://developers.openai.com/codex/app"><img src="https://developers.openai.com/favicon.png" alt="" width="16" height="16" align="absmiddle"></a> [Codex](https://developers.openai.com/codex/app)
+- <a href="https://docs.anthropic.com/en/docs/claude-code/overview"><img src="https://www.anthropic.com/favicon.ico" alt="" width="16" height="16" align="absmiddle"></a> [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
 
 项目采用“程序”和“个人数据”分离的设计。这个仓库只放工具本身；你的对话、记忆、日志和同步状态会保存在可配置的数据目录中，例如 `~/.context-harness`。
 
@@ -171,6 +171,16 @@ global_context_file = "global-claude.md"
 - `skills/adapt-agent-backup`：指导其他 Agent 为新的本地 Code Agent 增加备份适配。
 
 这些 skills 只负责描述 Agent 工作流，实际能力由 CLI 提供，避免把业务逻辑散落到多个 Agent prompt 里。
+
+### 一键复制提示词：增加 Agent 备份适配
+
+把下面这段提示词复制给任意 coding Agent，并把 `<target-agent>` 换成你想适配的 Agent：
+
+```text
+请克隆并检查 https://github.com/yinjialu/context-harness。
+
+请使用仓库内的 `adapt-agent-backup` skill，为 <target-agent> 增加本地 conversation 备份适配，并提交 PR。
+```
 
 ## Codex Plugin
 
@@ -402,7 +412,7 @@ context-harness --version
 
 ## Hooks
 
-V1 的 hooks 目标是让 Codex 和 Claude Code 在合适时机自动调用同步命令，把新 conversation 归档到 `context_home`。
+Hooks 会在受支持 Code Agent 的合适生命周期时机自动调用同步命令，把新 conversation 归档到 `context_home`。
 
 所有受支持的 Code Agent 使用同一套安装模式：默认用户级安装；传 `--scope project` 时安装到项目级。`--project-root` 可以指定另一个项目，否则项目级安装使用当前目录。
 
