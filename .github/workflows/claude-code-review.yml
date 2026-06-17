@@ -2,22 +2,62 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    types: [opened, synchronize, ready_for_review, reopened, labeled]
 
 jobs:
-  claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+  classify-review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      reason: ${{ steps.classify.outputs.reason }}
+      should_review: ${{ steps.classify.outputs.should_review }}
+    steps:
+      - name: Decide whether Claude review should run
+        id: classify
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request
+            const labels = pr.labels.map((label) => label.name)
+            const body = pr.body || ""
+            const titleAndBody = `${pr.title}\n${body}`
 
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            })
+            const paths = files.map((file) => file.filename)
+
+            const reasons = []
+            if (labels.includes("ai-review")) {
+              reasons.push("label:ai-review")
+            }
+            if (labels.includes("agent-backup-adapter")) {
+              reasons.push("label:agent-backup-adapter")
+            }
+            if (/adapt-agent-backup|agent backup adapter|conversation backup adapter/i.test(titleAndBody)) {
+              reasons.push("adapter text signal")
+            }
+            if (paths.some((path) => /^context_harness\/collectors\/[^/]+\.py$/.test(path))) {
+              reasons.push("collector change")
+            }
+            if (paths.some((path) => path.startsWith("context_harness/hooks/"))) {
+              reasons.push("hook change")
+            }
+            if (paths.some((path) => path.startsWith("skills/adapt-agent-backup/"))) {
+              reasons.push("adapt-agent-backup skill change")
+            }
+
+            core.setOutput("should_review", reasons.length > 0 ? "true" : "false")
+            core.setOutput("reason", reasons.join(", ") || "no matching review signal")
+            core.info(`Claude review decision: ${reasons.join(", ") || "skip"}`)
+
+  claude-review:
+    needs: classify-review
+    if: needs.classify-review.outputs.should_review == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -38,7 +78,13 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          prompt: |
+            /code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}
+
+            Review trigger: ${{ needs.classify-review.outputs.reason }}
+
+            If this is an agent backup adapter PR, also check it against the adapt-agent-backup checklist:
+            source id consistency, parser correctness, tests and synthetic fixtures, README and skill updates,
+            hook support status, verification notes, and avoiding private user transcripts, memory, state, logs, or local config.
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-

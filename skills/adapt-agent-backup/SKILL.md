@@ -79,10 +79,11 @@ Before editing, read:
    - Keep changes small and complete; do not refactor unrelated modules.
 
 11. Prepare the PR for automated review.
-   - Add label `agent-backup-adapter` when possible.
+   - Add label `agent-backup-adapter`. This label marks the PR as an Agent backup adapter and allows repository automation to run adapter-specific checks.
+   - Add label `ai-review` only when an explicit Claude AI review is desired. This is a manual shortcut label and does not replace `agent-backup-adapter`.
    - Include `Source id: <source>` in the PR body.
    - Include transcript path/format assumptions, hook support status, verification commands, and remaining risks.
-   - Optional AI review enhancement: if the repository has Codex GitHub integration enabled, comment `@codex review`; if Claude Code GitHub Actions is enabled, comment `@claude review this adapter PR against the adapt-agent-backup checklist`. Either one is acceptable as an extra AI review signal.
+   - Optional AI review enhancement: if the repository has Codex GitHub integration enabled, comment `@codex review`; if Claude Code GitHub Actions is enabled, either add label `ai-review` or comment `@claude review this adapter PR against the adapt-agent-backup checklist`. Any one of these is acceptable as an extra AI review signal.
 
 ## PR Checklist
 
@@ -90,6 +91,7 @@ Before editing, read:
 - The adapter writes incremental state to `context_home/state/<source>-sync-state.json`.
 - README supported-Agent lists, examples, default config, skills, CLI choices, and tests all use the same source id.
 - Real user transcripts, memory, logs, state, and private machine config are not committed.
-- PR has label `agent-backup-adapter` when labels are available, and its body includes `Source id: <source>`.
+- PR has label `agent-backup-adapter`, and its body includes `Source id: <source>`.
+- PR has label `ai-review` only when a manual Claude AI review should be requested.
 - PR description states transcript format assumptions, hook support status, commands run, and remaining risks.
 - The diff avoids unrelated rewrites and leaves existing behavior intact outside the new adapter path.

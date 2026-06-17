@@ -138,8 +138,8 @@ jobs:
               },
               {
                 name: "Optional AI review path",
-                pass: /@codex\s+review|@claude|ai review|AI review/i.test(titleAndBody),
-                note: "Optional: request `@codex review` or `@claude` when the repository integration is enabled.",
+                pass: labels.includes("ai-review") || /@codex\s+review|@claude|ai review|AI review/i.test(titleAndBody),
+                note: "Optional: add label `ai-review`, request `@codex review`, or request `@claude` when the repository integration is enabled.",
               },
             ]
 
@@ -161,7 +161,7 @@ jobs:
               "",
               "This lightweight review is intentionally deterministic: it checks PR shape, docs/test coverage signals, and obvious private-data risks without running untrusted PR code.",
               "",
-              "**AI review enhancement:** if this repository has Codex GitHub integration enabled, comment `@codex review`. If Claude Code GitHub Actions is enabled, comment `@claude review this adapter PR against the adapt-agent-backup checklist`. Either review path is acceptable as an extra human-readable review signal.",
+              "**AI review enhancement:** if this repository has Codex GitHub integration enabled, comment `@codex review`. If Claude Code GitHub Actions is enabled, add label `ai-review` or comment `@claude review this adapter PR against the adapt-agent-backup checklist`. Either review path is acceptable as an extra human-readable review signal.",
             ].join("\n")
 
             const comments = await github.paginate(github.rest.issues.listComments, {
