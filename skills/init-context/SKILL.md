@@ -1,6 +1,7 @@
 ---
 name: init-context
 description: Initialize a context-harness personal context home, data directories, global context files, and optional Codex/Claude Code hooks. Use when the user asks to initialize context-harness, set up a personal context system, configure automatic Code Agent conversation backup, or repair context-harness hooks.
+license: MIT
 ---
 
 # Init Context

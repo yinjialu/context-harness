@@ -1,6 +1,7 @@
 ---
 name: sync-conversations
 description: Sync local Codex and Claude Code conversation records into a context-harness data home. Use when the user asks to back up Code Agent conversations, sync Codex sessions, sync Claude Code sessions, run full or incremental conversation backup, or inspect context-harness sync status.
+license: MIT
 ---
 
 # Sync Conversations

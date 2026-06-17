@@ -1,6 +1,7 @@
 ---
 name: profile-dreamer
 description: Review context-harness conversation archives and propose durable memory/profile updates. Use when the user asks to dream, update memory, refresh their profile, extract personal context from conversations, or maintain the context-harness memory loop.
+license: MIT
 ---
 
 # Profile Dreamer
