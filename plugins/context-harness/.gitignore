@@ -1,0 +1,14 @@
+.DS_Store
+.venv/
+__pycache__/
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+
+# Local implementation worktrees.
+.worktrees/
+
+# User data should live outside the mechanism repo.
+.context-harness/
+context-home/

@@ -1,0 +1,4 @@
+{"timestamp":"2026-06-16T08:00:00Z","type":"session_meta","payload":{"id":"codex-session-1","cwd":"/tmp/project","title":"Context Harness"}}
+{"timestamp":"2026-06-16T08:01:00Z","type":"event_msg","payload":{"role":"user","content":"继续"}}
+{"timestamp":"2026-06-16T08:02:00Z","type":"event_msg","payload":{"role":"assistant","content":"好的，继续。"}}
+{"timestamp":"2026-06-16T08:03:00Z","type":"tool_call","payload":{"name":"exec_command"}}

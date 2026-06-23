@@ -1,0 +1,4 @@
+{"sessionId":"claude-session-1","timestamp":"2026-06-16T08:00:00Z","type":"summary","summary":"Context Harness"}
+{"sessionId":"claude-session-1","timestamp":"2026-06-16T08:01:00Z","type":"user","message":{"role":"user","content":"继续"}}
+{"sessionId":"claude-session-1","timestamp":"2026-06-16T08:02:00Z","type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"好的，继续。"}]}}
+{"sessionId":"claude-session-1","timestamp":"2026-06-16T08:03:00Z","type":"tool_result","content":"noise"}
