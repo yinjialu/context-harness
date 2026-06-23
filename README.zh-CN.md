@@ -13,6 +13,13 @@
 
 项目采用“程序”和“个人数据”分离的设计。这个仓库只放工具本身；你的对话、记忆、日志和同步状态会保存在可配置的数据目录中，例如 `~/.context-harness`。
 
+> **重要更新 — 原生支持 [Open Knowledge Format (OKF)](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing)。** 你的数据家目录从「一堆笔记」升级为可移植的 OKF 知识库：
+> - 每个对话、记忆文件、个人画像和索引都带机器可读的 YAML frontmatter，唯一强制字段是 `type` —— AI Agent 可直接按 `type` / `tags` / `source` / 时间过滤、排序、聚合，不再解析自由文本。
+> - 自动生成 `index.md` / `log.md`（每个来源一份，外加 `conversations/` 索引和家目录根索引），实现渐进式披露与变更时间线，用普通相对 markdown 链接互联成知识图。
+> - 新归档默认就是 OKF；存量数据用幂等命令 `context-harness migrate-okf [--dry-run]` 一次补齐，正文一字不动、未知 producer 字段全部保留。
+>
+> 详见 [Open Knowledge Format (OKF)](#open-knowledge-format-okf) 一节。
+
 ## 普通用户快速安装
 
 如果你只是想把它装起来用，不需要先理解插件、skills 或命令行细节。优先用下面两种方式之一。安装完成后，你会得到：
@@ -175,7 +182,7 @@ global_context_file = "global-claude.md"
 - `state/` 保存增量同步状态，用于避免重复处理未变化的 session。
 - `config.toml` 只描述本机路径和开关，不需要提交到机制仓库。
 
-### Open Knowledge Format（OKF）
+### Open Knowledge Format (OKF)
 
 数据家目录本身就是一个原生的 [Open Knowledge Format](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing) 知识库：一个 markdown 文件目录，每个文件带 YAML frontmatter，唯一强制字段是 `type`。对话（`type: Conversation`）、记忆（`type: user|project|feedback|reference|insight`）、个人画像（`type: Personal Context`）以及索引（`type: Index`/`Log`）全部符合 OKF，概念之间用普通相对 markdown 链接互联。
 
