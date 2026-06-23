@@ -13,6 +13,13 @@ Supported local AI coding assistants:
 
 The project keeps the tool itself separate from your personal data. This repository contains the program; your conversations, memory, logs, and sync state live in a configurable data directory such as `~/.context-harness`.
 
+> **What's new — native [Open Knowledge Format (OKF)](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing) support.** Your data home is now a portable OKF knowledge base, not just a folder of notes:
+> - Every conversation, memory file, profile, and index carries machine-readable YAML frontmatter whose only mandatory field is `type` — so an AI agent can filter, sort, and aggregate by `type` / `tags` / `source` / time instead of parsing prose.
+> - Auto-generated `index.md` / `log.md` (per source, plus a `conversations/` index and a data-home root index) give progressive disclosure and a change timeline, cross-linked with ordinary relative markdown links.
+> - New archives are OKF by default; an existing data home is brought up to date with the idempotent `context-harness migrate-okf [--dry-run]`. Bodies are never touched and unknown producer fields are preserved.
+>
+> See [Open Knowledge Format (OKF)](#open-knowledge-format-okf) for details.
+
 ## Simple Install
 
 If you just want to get it working, you do not need to understand plugins, skills, or command-line internals first. Start with one of these two paths. After installation, you will have:
