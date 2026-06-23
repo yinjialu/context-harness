@@ -380,7 +380,7 @@ gh skill publish skills --dry-run
 Publish a tagged release:
 
 ```bash
-gh skill publish skills --tag v0.1.8
+gh skill publish skills --tag v0.1.9
 ```
 
 `skills/` is the canonical publish target. Running `gh skill publish` from the repository root may warn about `.agents/skills` and `.claude/skills`; those directories are intentionally kept as repo-local discovery symlinks for Codex and Claude Code.
@@ -399,7 +399,7 @@ cd "$runtime_dir"
 The bootstrap script:
 
 - clones or updates the runtime repository at `~/.local/share/context-harness`
-- checks out `v0.1.8` by default
+- checks out `v0.1.9` by default
 - runs `uv sync`
 - prints the runtime repository path on stdout
 
