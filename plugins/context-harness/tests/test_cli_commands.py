@@ -1,0 +1,340 @@
+import json
+import sys
+from io import StringIO
+from pathlib import Path
+
+from context_harness.cli import main
+
+
+def test_cli_sync_codex(tmp_path, capsys):
+    context_home = tmp_path / "home"
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    fixture = Path("tests/fixtures/codex-session.jsonl").read_text(encoding="utf-8")
+    (sessions / "codex-session-1.jsonl").write_text(fixture, encoding="utf-8")
+    context_home.mkdir()
+    (context_home / "config.toml").write_text(
+        f"""[sources.codex]
+enabled = true
+sessions_dir = "{sessions}"
+output_dir = "conversations/codex"
+""",
+        encoding="utf-8",
+    )
+
+    code = main(["--context-home", str(context_home), "sync", "codex", "--latest", "1"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "source=codex" in captured.out
+    assert "checked=1" in captured.out
+    assert "created=1" in captured.out
+    assert list((context_home / "conversations" / "codex").glob("*.md"))
+
+
+def test_cli_sync_codex_respects_disabled_source(tmp_path, capsys):
+    context_home = tmp_path / "home"
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    fixture = Path("tests/fixtures/codex-session.jsonl").read_text(encoding="utf-8")
+    (sessions / "codex-session-1.jsonl").write_text(fixture, encoding="utf-8")
+    context_home.mkdir()
+    (context_home / "config.toml").write_text(
+        f"""[sources.codex]
+enabled = false
+sessions_dir = "{sessions}"
+output_dir = "conversations/codex"
+""",
+        encoding="utf-8",
+    )
+
+    code = main(["--context-home", str(context_home), "sync", "codex", "--latest", "1"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "source=codex checked=0 created=0 updated=0 skipped=0" in captured.out
+    assert not (context_home / "conversations" / "codex").exists()
+
+
+def test_cli_sync_codex_hook_stdin_uses_transcript_path(tmp_path, capsys, monkeypatch):
+    context_home = tmp_path / "home"
+    sessions = tmp_path / "sessions"
+    target = sessions / "target.jsonl"
+    newer = sessions / "newer.jsonl"
+    fixture = Path("tests/fixtures/codex-session.jsonl").read_text(encoding="utf-8")
+    target.parent.mkdir()
+    target.write_text(fixture.replace("Context Harness", "Target Session"), encoding="utf-8")
+    newer.write_text(fixture.replace("Context Harness", "Newer Session"), encoding="utf-8")
+    newer.touch()
+    context_home.mkdir()
+    (context_home / "config.toml").write_text(
+        f"""[sources.codex]
+enabled = true
+sessions_dir = "{sessions}"
+output_dir = "conversations/codex"
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(sys, "stdin", StringIO(json.dumps({"transcript_path": str(target)})))
+
+    code = main(["--context-home", str(context_home), "sync", "codex", "--hook-stdin"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "checked=1" in captured.out
+    archive = next((context_home / "conversations" / "codex").glob("*.md"))
+    content = archive.read_text(encoding="utf-8")
+    assert "Target Session" in content
+    assert "Newer Session" not in content
+
+
+def test_cli_sync_claude_code(tmp_path, capsys):
+    context_home = tmp_path / "home"
+    projects = tmp_path / "projects"
+    projects.mkdir()
+    fixture = Path("tests/fixtures/claude-code-session.jsonl").read_text(encoding="utf-8")
+    (projects / "claude-code-session-1.jsonl").write_text(fixture, encoding="utf-8")
+    context_home.mkdir()
+    (context_home / "config.toml").write_text(
+        f"""[sources.claude-code]
+enabled = true
+projects_dir = "{projects}"
+output_dir = "conversations/claude-code"
+""",
+        encoding="utf-8",
+    )
+
+    code = main(["--context-home", str(context_home), "sync", "claude-code", "--latest", "1"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "source=claude-code" in captured.out
+    assert "checked=1" in captured.out
+    assert "created=1" in captured.out
+    assert list((context_home / "conversations" / "claude-code").glob("*.md"))
+
+
+def test_cli_sync_claude_code_respects_disabled_source(tmp_path, capsys):
+    context_home = tmp_path / "home"
+    projects = tmp_path / "projects"
+    projects.mkdir()
+    fixture = Path("tests/fixtures/claude-code-session.jsonl").read_text(encoding="utf-8")
+    (projects / "claude-code-session-1.jsonl").write_text(fixture, encoding="utf-8")
+    context_home.mkdir()
+    (context_home / "config.toml").write_text(
+        f"""[sources.claude-code]
+enabled = false
+projects_dir = "{projects}"
+output_dir = "conversations/claude-code"
+""",
+        encoding="utf-8",
+    )
+
+    code = main(["--context-home", str(context_home), "sync", "claude-code", "--latest", "1"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "source=claude-code checked=0 created=0 updated=0 skipped=0" in captured.out
+    assert not (context_home / "conversations" / "claude-code").exists()
+
+
+def test_cli_sync_claude_code_hook_stdin_uses_transcript_path(tmp_path, capsys, monkeypatch):
+    context_home = tmp_path / "home"
+    projects = tmp_path / "projects"
+    target = projects / "target.jsonl"
+    newer = projects / "newer.jsonl"
+    fixture = Path("tests/fixtures/claude-code-session.jsonl").read_text(encoding="utf-8")
+    target.parent.mkdir()
+    target.write_text(fixture.replace("Context Harness", "Target Session"), encoding="utf-8")
+    newer.write_text(fixture.replace("Context Harness", "Newer Session"), encoding="utf-8")
+    newer.touch()
+    context_home.mkdir()
+    (context_home / "config.toml").write_text(
+        f"""[sources.claude-code]
+enabled = true
+projects_dir = "{projects}"
+output_dir = "conversations/claude-code"
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(sys, "stdin", StringIO(json.dumps({"transcript_path": str(target)})))
+
+    code = main(["--context-home", str(context_home), "sync", "claude-code", "--hook-stdin"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "checked=1" in captured.out
+    archive = next((context_home / "conversations" / "claude-code").glob("*.md"))
+    content = archive.read_text(encoding="utf-8")
+    assert "Target Session" in content
+    assert "Newer Session" not in content
+
+
+def test_cli_hooks_install_codex_writes_user_config_by_default(tmp_path, monkeypatch):
+    context_home = tmp_path / "home"
+    codex_home = tmp_path / ".codex"
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+    code = main(["--context-home", str(context_home), "hooks", "install", "codex"])
+
+    assert code == 0
+    assert (codex_home / "config.toml").exists()
+    hooks = json.loads((codex_home / "hooks.json").read_text(encoding="utf-8"))
+    command = hooks["hooks"]["Stop"][0]["hooks"][0]["command"]
+    assert "sync codex --hook-stdin" in command
+    assert f"--context-home {context_home}" in command
+
+
+def test_cli_hooks_install_codex_writes_project_local_config_when_requested(tmp_path):
+    context_home = tmp_path / "home"
+    project_root = tmp_path / "project"
+
+    code = main(
+        [
+            "--context-home",
+            str(context_home),
+            "hooks",
+            "install",
+            "codex",
+            "--scope",
+            "project",
+            "--project-root",
+            str(project_root),
+        ]
+    )
+
+    assert code == 0
+    assert (project_root / ".codex" / "config.toml").exists()
+    hooks = json.loads((project_root / ".codex" / "hooks.json").read_text(encoding="utf-8"))
+    command = hooks["hooks"]["Stop"][0]["hooks"][0]["command"]
+    assert "sync codex --hook-stdin" in command
+    assert f"--context-home {context_home}" in command
+
+
+def test_cli_hooks_install_claude_code_writes_settings(tmp_path):
+    context_home = tmp_path / "home"
+    settings_path = tmp_path / ".claude" / "settings.json"
+
+    code = main(
+        [
+            "--context-home",
+            str(context_home),
+            "hooks",
+            "install",
+            "claude-code",
+            "--claude-settings",
+            str(settings_path),
+        ]
+    )
+
+    assert code == 0
+    settings = json.loads(settings_path.read_text(encoding="utf-8"))
+    command = settings["hooks"]["Stop"][0]["hooks"][0]["command"]
+    assert "sync claude-code --hook-stdin" in command
+    assert f"--context-home {context_home}" in command
+
+
+def test_cli_hooks_install_claude_code_writes_project_settings_when_requested(tmp_path, monkeypatch):
+    context_home = tmp_path / "home"
+    project_root = tmp_path / "project"
+    monkeypatch.setattr(Path, "home", lambda: tmp_path / "user")
+
+    code = main(
+        [
+            "--context-home",
+            str(context_home),
+            "hooks",
+            "install",
+            "claude-code",
+            "--scope",
+            "project",
+            "--project-root",
+            str(project_root),
+        ]
+    )
+
+    assert code == 0
+    assert not (tmp_path / "user" / ".claude" / "settings.json").exists()
+    settings = json.loads((project_root / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    command = settings["hooks"]["Stop"][0]["hooks"][0]["command"]
+    assert "sync claude-code --hook-stdin" in command
+    assert f"--context-home {context_home}" in command
+
+
+def test_cli_init_install_hooks_writes_codex_user_hook(tmp_path, monkeypatch):
+    context_home = tmp_path / "home"
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+    code = main(["--context-home", str(context_home), "init", "--install-hooks"])
+
+    assert code == 0
+    assert (tmp_path / ".codex" / "hooks.json").exists()
+    settings = json.loads((tmp_path / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    assert "sync claude-code --hook-stdin" in settings["hooks"]["Stop"][0]["hooks"][0]["command"]
+    # init binds global-claude.md into the (redirected) user-level CLAUDE.md, not the real one.
+    claude_md = tmp_path / ".claude" / "CLAUDE.md"
+    assert claude_md.exists()
+    assert f"@{(context_home / 'global-claude.md').resolve()}" in claude_md.read_text(encoding="utf-8")
+    codex_agents = tmp_path / ".codex" / "AGENTS.md"
+    assert codex_agents.exists()
+    assert str((context_home / "global-claude.md").resolve()) in codex_agents.read_text(encoding="utf-8")
+
+
+def test_cli_sync_codex_rebuilds_indexes(tmp_path, capsys):
+    context_home = tmp_path / "home"
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    fixture = Path("tests/fixtures/codex-session.jsonl").read_text(encoding="utf-8")
+    (sessions / "codex-session-1.jsonl").write_text(fixture, encoding="utf-8")
+    context_home.mkdir()
+    (context_home / "config.toml").write_text(
+        f"""[sources.codex]
+enabled = true
+sessions_dir = "{sessions}"
+output_dir = "conversations/codex"
+""",
+        encoding="utf-8",
+    )
+
+    code = main(["--context-home", str(context_home), "sync", "codex", "--latest", "1"])
+
+    assert code == 0
+    assert (context_home / "conversations" / "codex" / "index.md").exists()
+    assert (context_home / "conversations" / "codex" / "log.md").exists()
+    assert (context_home / "conversations" / "index.md").exists()
+    assert (context_home / "index.md").exists()
+
+
+def test_cli_migrate_okf_dry_run_then_apply(tmp_path, capsys):
+    context_home = tmp_path / "home"
+    archive_dir = context_home / "conversations" / "antigravity"
+    archive_dir.mkdir(parents=True)
+    archive = archive_dir / "20260325_2232f3cb.md"
+    archive.write_text(
+        "# 2026-03-25 — Publishing Article\n\n- **Source**: Antigravity Local API\n",
+        encoding="utf-8",
+    )
+    original = archive.read_text(encoding="utf-8")
+
+    dry_code = main(["--context-home", str(context_home), "migrate-okf", "--dry-run"])
+    dry_out = capsys.readouterr().out
+    assert dry_code == 0
+    assert "would change" in dry_out
+    assert archive.read_text(encoding="utf-8") == original
+
+    apply_code = main(["--context-home", str(context_home), "migrate-okf"])
+    apply_out = capsys.readouterr().out
+    assert apply_code == 0
+    assert "changed" in apply_out
+    fields, _ = __import__("context_harness.okf", fromlist=["parse_frontmatter"]).parse_frontmatter(
+        archive.read_text(encoding="utf-8")
+    )
+    assert fields["type"] == "Conversation"
+
+
+def test_cli_dream_prints_skill_hint(capsys):
+    code = main(["dream"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "profile-dreamer workflow is available through the profile-dreamer skill" in captured.out
