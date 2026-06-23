@@ -1,3 +1,4 @@
+from context_harness import okf
 from context_harness.init import CODEX_LINK_MARKER, LINK_MARKER, initialize_context_home
 
 
@@ -22,6 +23,22 @@ def test_initialize_context_home_creates_expected_files(tmp_path):
     assert (tmp_path / "state").is_dir()
     assert "created" in result.statuses.values()
     assert f'context_home = "{tmp_path.resolve()}"' in (tmp_path / "config.toml").read_text(encoding="utf-8")
+
+
+def test_initialize_context_home_scaffolds_okf_templates(tmp_path):
+    initialize_context_home(tmp_path, **_agent_paths(tmp_path))
+
+    memory_index, _ = okf.parse_frontmatter((tmp_path / "memory" / "MEMORY.md").read_text(encoding="utf-8"))
+    assert memory_index["type"] == "Index"
+
+    profile, _ = okf.parse_frontmatter((tmp_path / "memory" / "user_profile.md").read_text(encoding="utf-8"))
+    assert profile["type"] == "user"
+
+    global_ctx, _ = okf.parse_frontmatter((tmp_path / "global-claude.md").read_text(encoding="utf-8"))
+    assert global_ctx["type"] == "Personal Context"
+
+    root_index, _ = okf.parse_frontmatter((tmp_path / "index.md").read_text(encoding="utf-8"))
+    assert root_index["type"] == "Index"
 
 
 def test_initialize_context_home_is_idempotent(tmp_path):

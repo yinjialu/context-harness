@@ -12,7 +12,9 @@ from .collectors.codex import sync_codex
 from .config import load_config, resolve_context_home
 from .hooks.claude_code import install_claude_code_hook
 from .hooks.codex import install_codex_hook, install_codex_user_hook
+from .indexing import rebuild_all_indexes
 from .init import initialize_context_home
+from .migrate import migrate_okf
 from .models import SyncResult
 
 
@@ -47,6 +49,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     hooks_install.add_argument("--project-root", help="Project root for project-local hooks")
     hooks_install.add_argument("--claude-settings", help="Custom Claude Code settings.json path")
+
+    migrate_parser = subparsers.add_parser(
+        "migrate-okf", help="Migrate the data home in place to Open Knowledge Format"
+    )
+    migrate_parser.add_argument(
+        "--dry-run", action="store_true", help="Print files that would change without writing"
+    )
 
     subparsers.add_parser("dream", help="Review conversations and propose memory updates")
 
@@ -130,6 +139,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             else:
                 result = _disabled_result("codex", config.codex.output_dir)
+            rebuild_all_indexes(config.context_home)
             _print_result(result)
             return 0
 
@@ -145,6 +155,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             else:
                 result = _disabled_result("claude-code", config.claude_code.output_dir)
+            rebuild_all_indexes(config.context_home)
             _print_result(result)
             return 0
 
@@ -169,6 +180,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             changed = install_claude_code_hook(settings_path, context_home)
             print(f"claude-code hook: {'updated' if changed else 'unchanged'}")
             return 0
+
+    if args.command == "migrate-okf":
+        context_home = resolve_context_home(args.context_home)
+        changed = migrate_okf(context_home, dry_run=args.dry_run)
+        verb = "would change" if args.dry_run else "changed"
+        print(f"context home: {context_home}")
+        for path in changed:
+            try:
+                display = path.relative_to(context_home)
+            except ValueError:
+                display = path
+            print(f"{verb}: {display}")
+        print(f"{len(changed)} file(s) {verb}")
+        return 0
 
     if args.command == "dream":
         print("profile-dreamer workflow is available through the profile-dreamer skill")

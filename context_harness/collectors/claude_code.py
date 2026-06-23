@@ -61,6 +61,7 @@ def _event_title(event: dict[str, Any]) -> str:
 def _read_claude_code_session(path: Path) -> Conversation | None:
     session_id = path.stem
     title = path.stem
+    cwd = ""
     created_at: datetime | None = None
     messages: list[Message] = []
 
@@ -82,6 +83,10 @@ def _read_claude_code_session(path: Path) -> Conversation | None:
         raw_session_id = event.get("sessionId")
         if isinstance(raw_session_id, str) and raw_session_id:
             session_id = raw_session_id
+
+        raw_cwd = event.get("cwd")
+        if not cwd and isinstance(raw_cwd, str) and raw_cwd:
+            cwd = raw_cwd
 
         if event_type in {"summary", "ai-title", "custom-title"}:
             event_title = _event_title(event)
@@ -113,6 +118,7 @@ def _read_claude_code_session(path: Path) -> Conversation | None:
     if not messages:
         return None
 
+    metadata = {"Cwd": cwd} if cwd else {}
     return Conversation(
         source="claude-code",
         session_id=session_id,
@@ -120,6 +126,7 @@ def _read_claude_code_session(path: Path) -> Conversation | None:
         created_at=created_at or datetime.fromtimestamp(path.stat().st_mtime, tz=UTC),
         synced_at=datetime.now(UTC),
         messages=messages,
+        metadata=metadata,
     )
 
 

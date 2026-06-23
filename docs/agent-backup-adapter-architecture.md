@@ -29,7 +29,10 @@
 - `context_harness/config.py`：解析 `--context-home`、`CONTEXT_HARNESS_HOME` 和 `config.toml`，输出 `AppConfig`。
 - `context_harness/init.py`：初始化数据目录、默认配置和 memory 文件。
 - `context_harness/models.py`：统一数据模型：`Conversation`、`Message`、`SyncResult`。
-- `context_harness/markdown.py`：把统一模型渲染为 Markdown archive。
+- `context_harness/markdown.py`：把统一模型渲染为 OKF 兼容的 Markdown archive（顶部 OKF frontmatter + 原有正文）。
+- `context_harness/okf.py`：OKF 纯函数层（frontmatter 渲染/解析、index.md / log.md 构建、对话 description/tags 助手）。无 IO。
+- `context_harness/indexing.py`：扫描归档读取 frontmatter，重建各 source 的 `index.md`/`log.md`、`conversations/index.md` 与根 `index.md`。幂等，CLI sync 后调用，migrate 复用。
+- `context_harness/migrate.py`：存量数据家目录到 OKF 的幂等迁移（`migrate-okf` 子命令）。
 - `context_harness/state.py`：读写增量同步状态 JSON。
 - `context_harness/collectors/*.py`：每个 Agent 的 transcript parser 和 sync 实现。
 - `context_harness/hooks/*.py`：每个 Agent 的 hook 安装器。
@@ -145,6 +148,15 @@ Conversation(
 ```
 
 除非有真实冲突，不要改 `render_conversation`。共享 renderer 是 archive 兼容性的核心。
+
+## OKF 输出约定
+
+归档是原生 [Open Knowledge Format](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing) 文件：`render_conversation` 在正文上方输出 OKF frontmatter，唯一强制字段是 `type`。新 source 的 collector 不需要关心 OKF——只要把数据填进 `Conversation` / `Message`，`render_conversation` 会统一产出 frontmatter：
+
+- `type: Conversation`（必填）、`title`、`description`（机器生成 `<source> · <N> messages[ · project <X>]`）、`source`、`session`、`messages`、`created`、`tags: [conversation, <source>]`、`timestamp`。
+- `conversation.metadata` 的键继续作为 producer 字段输出；若包含 `Cwd`（或 `Project`），会被用来推导 description 里的 project 名。如果你的 source 知道工作目录，填 `metadata={"Cwd": ...}` 即可获得 project 标注。
+
+索引/历史由 `indexing.py` 统一重建，collector 无需自己写 `index.md`/`log.md`。CLI 在 `sync` 成功后调用 `rebuild_all_indexes(context_home)`；存量数据用 `context-harness migrate-okf` 一次性补齐。新 source 一般不需要改动 `okf.py`/`indexing.py`/`migrate.py`——它们按目录与 frontmatter 通用处理所有 source。
 
 ### 4. 注册 CLI
 

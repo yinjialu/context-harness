@@ -62,3 +62,16 @@ uv run context-harness --context-home <context-home> sync claude-code --all
 ```
 
 After running, summarize `checked`, `created`, `updated`, `skipped`, and `output_dir`.
+
+## OKF Compliance
+
+Archives are native Open Knowledge Format files: each archive carries an OKF frontmatter block (`type: Conversation`, plus `title`/`description`/`source`/`session`/`messages`/`created`/`tags`/`timestamp`) above the unchanged body. Every sync also rebuilds the OKF `index.md` / `log.md` files under `conversations/` and the data-home root `index.md`.
+
+To upgrade a pre-OKF data home (archives without frontmatter), run the idempotent migration once:
+
+```bash
+uv run context-harness --context-home <context-home> migrate-okf --dry-run   # preview
+uv run context-harness --context-home <context-home> migrate-okf             # apply
+```
+
+The migration also normalizes `memory/*.md` and `global-claude.md` frontmatter. It preserves unknown producer fields and human-authored bodies, so it is safe to re-run.
