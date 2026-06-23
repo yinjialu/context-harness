@@ -18,11 +18,13 @@ def test_cli_help_returns_zero(capsys):
 
 
 def test_cli_version_returns_project_version(capsys):
+    from context_harness import __version__
+
     code = main(["--version"])
 
     captured = capsys.readouterr()
     assert code == 0
-    assert captured.out.strip() == "context-harness 0.1.9"
+    assert captured.out.strip() == f"context-harness {__version__}"
 
 
 def test_cli_requires_top_level_command():

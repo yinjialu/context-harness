@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_url="${CONTEXT_HARNESS_REPO_URL:-https://github.com/yinjialu/context-harness.git}"
 runtime_dir="${CONTEXT_HARNESS_RUNTIME_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/context-harness}"
-runtime_ref="${CONTEXT_HARNESS_REF:-v0.1.9}"
+runtime_ref="${CONTEXT_HARNESS_REF:-}"
 context_home="${CONTEXT_HARNESS_HOME:-$HOME/.context-harness}"
 agents="${CONTEXT_HARNESS_AGENTS:-auto}"
 
@@ -101,11 +101,15 @@ cd "$runtime_dir"
 log "Updating context-harness"
 git fetch --tags --prune origin >&2
 
+if [ -z "$runtime_ref" ]; then
+  runtime_ref="$(git tag -l 'v*' --sort=-v:refname | head -n1)"
+fi
+
 if [ -n "$runtime_ref" ]; then
   log "Checking out $runtime_ref"
   git checkout --quiet "$runtime_ref"
 else
-  log "Fast-forwarding current branch"
+  log "No release tags found; fast-forwarding current branch"
   git pull --ff-only >&2
 fi
 

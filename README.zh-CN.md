@@ -379,10 +379,10 @@ done
 gh skill publish skills --dry-run
 ```
 
-发布 tagged release：
+发布 tagged release（用你正在发布的 release tag，如 `vX.Y.Z`）：
 
 ```bash
-gh skill publish skills --tag v0.1.9
+gh skill publish skills --tag "vX.Y.Z"
 ```
 
 `skills/` 是 canonical publish target。直接在仓库根目录运行 `gh skill publish` 可能会提示 `.agents/skills` 和 `.claude/skills`；这两组目录是我们特意保留的 repo-local discovery symlink，用于让 Codex 和 Claude Code 打开仓库时自动发现 skills。
@@ -401,7 +401,7 @@ cd "$runtime_dir"
 bootstrap 脚本会：
 
 - clone 或更新 runtime repo 到 `~/.local/share/context-harness`
-- 默认 checkout `v0.1.9`
+- 默认 checkout 最新 release tag（可用 `CONTEXT_HARNESS_REF` 覆盖）
 - 执行 `uv sync`
 - 通过 stdout 输出 runtime repo 路径
 
