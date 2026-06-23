@@ -60,3 +60,14 @@ uv run context-harness --context-home <context-home> hooks install claude-code -
 5. Report the data home and hook status.
 
 Do not store user conversations or memory inside the `context-harness` repository unless the user explicitly chooses that path as the data home.
+
+## OKF Layout
+
+`init` scaffolds an Open Knowledge Format knowledge base: it writes a root `index.md` and OKF-shaped templates for `memory/MEMORY.md` (`type: Index`), `memory/user_profile.md` (`type: user`) and `global-claude.md` (`type: Personal Context`). It is idempotent — re-running reports `index.md: unchanged`.
+
+If the user points `init` at a data home that already holds pre-OKF archives (no frontmatter), upgrade it once with the idempotent migration:
+
+```bash
+uv run context-harness --context-home <context-home> migrate-okf --dry-run   # preview
+uv run context-harness --context-home <context-home> migrate-okf             # apply
+```

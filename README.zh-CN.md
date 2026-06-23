@@ -151,13 +151,18 @@ global_context_file = "global-claude.md"
 ```text
 ~/.context-harness/
   config.toml
-  global-claude.md
+  index.md                 # OKF 根索引
+  global-claude.md         # OKF type: Personal Context
   conversations/
+    index.md               # OKF 来源索引
     codex/
+      index.md             # OKF 索引（渐进式披露）
+      log.md               # OKF 日志（倒序时间线）
+      20260616_019ed088.md # OKF type: Conversation
     claude-code/
   memory/
-    MEMORY.md
-    user_profile.md
+    MEMORY.md              # OKF type: Index
+    user_profile.md        # OKF type: user
   state/
     codex-sync-state.json
     claude-code-sync-state.json
@@ -169,6 +174,21 @@ global_context_file = "global-claude.md"
 - `memory/` 保存 profile-dreamer 等工作流维护的记忆文件。
 - `state/` 保存增量同步状态，用于避免重复处理未变化的 session。
 - `config.toml` 只描述本机路径和开关，不需要提交到机制仓库。
+
+### Open Knowledge Format（OKF）
+
+数据家目录本身就是一个原生的 [Open Knowledge Format](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing) 知识库：一个 markdown 文件目录，每个文件带 YAML frontmatter，唯一强制字段是 `type`。对话（`type: Conversation`）、记忆（`type: user|project|feedback|reference|insight`）、个人画像（`type: Personal Context`）以及索引（`type: Index`/`Log`）全部符合 OKF，概念之间用普通相对 markdown 链接互联。
+
+- 新归档由同步 hook 自动写入 OKF frontmatter，无需额外步骤。
+- 每次同步后重建 `index.md` / `log.md`，用于渐进式披露和变更历史。
+- 把存量数据家目录升级到 OKF，运行幂等迁移命令：
+
+```bash
+context-harness migrate-okf --dry-run   # 列出将变更的文件
+context-harness migrate-okf             # 原地应用
+```
+
+迁移只补齐或修复缺失的标准 frontmatter 字段；未知的 producer 字段和人工正文都会保留，可安全重复运行。
 
 ## Skills
 

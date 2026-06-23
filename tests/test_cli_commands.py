@@ -280,6 +280,58 @@ def test_cli_init_install_hooks_writes_codex_user_hook(tmp_path, monkeypatch):
     assert str((context_home / "global-claude.md").resolve()) in codex_agents.read_text(encoding="utf-8")
 
 
+def test_cli_sync_codex_rebuilds_indexes(tmp_path, capsys):
+    context_home = tmp_path / "home"
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    fixture = Path("tests/fixtures/codex-session.jsonl").read_text(encoding="utf-8")
+    (sessions / "codex-session-1.jsonl").write_text(fixture, encoding="utf-8")
+    context_home.mkdir()
+    (context_home / "config.toml").write_text(
+        f"""[sources.codex]
+enabled = true
+sessions_dir = "{sessions}"
+output_dir = "conversations/codex"
+""",
+        encoding="utf-8",
+    )
+
+    code = main(["--context-home", str(context_home), "sync", "codex", "--latest", "1"])
+
+    assert code == 0
+    assert (context_home / "conversations" / "codex" / "index.md").exists()
+    assert (context_home / "conversations" / "codex" / "log.md").exists()
+    assert (context_home / "conversations" / "index.md").exists()
+    assert (context_home / "index.md").exists()
+
+
+def test_cli_migrate_okf_dry_run_then_apply(tmp_path, capsys):
+    context_home = tmp_path / "home"
+    archive_dir = context_home / "conversations" / "antigravity"
+    archive_dir.mkdir(parents=True)
+    archive = archive_dir / "20260325_2232f3cb.md"
+    archive.write_text(
+        "# 2026-03-25 — Publishing Article\n\n- **Source**: Antigravity Local API\n",
+        encoding="utf-8",
+    )
+    original = archive.read_text(encoding="utf-8")
+
+    dry_code = main(["--context-home", str(context_home), "migrate-okf", "--dry-run"])
+    dry_out = capsys.readouterr().out
+    assert dry_code == 0
+    assert "would change" in dry_out
+    assert archive.read_text(encoding="utf-8") == original
+
+    apply_code = main(["--context-home", str(context_home), "migrate-okf"])
+    apply_out = capsys.readouterr().out
+    assert apply_code == 0
+    assert "changed" in apply_out
+    fields, _ = __import__("context_harness.okf", fromlist=["parse_frontmatter"]).parse_frontmatter(
+        archive.read_text(encoding="utf-8")
+    )
+    assert fields["type"] == "Conversation"
+
+
 def test_cli_dream_prints_skill_hint(capsys):
     code = main(["dream"])
 

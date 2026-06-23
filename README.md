@@ -151,13 +151,18 @@ After initialization, the data home looks roughly like this:
 ```text
 ~/.context-harness/
   config.toml
-  global-claude.md
+  index.md                 # OKF root index
+  global-claude.md         # OKF type: Personal Context
   conversations/
+    index.md               # OKF index of sources
     codex/
+      index.md             # OKF index (progressive disclosure)
+      log.md               # OKF log (reverse-chronological)
+      20260616_019ed088.md # OKF type: Conversation
     claude-code/
   memory/
-    MEMORY.md
-    user_profile.md
+    MEMORY.md              # OKF type: Index
+    user_profile.md        # OKF type: user
   state/
     codex-sync-state.json
     claude-code-sync-state.json
@@ -167,6 +172,21 @@ After initialization, the data home looks roughly like this:
 - `memory/` stores files maintained by workflows such as `profile-dreamer`.
 - `state/` stores incremental sync state to avoid reprocessing unchanged sessions.
 - `config.toml` describes local machine paths and switches. It should not be committed to this mechanism repository.
+
+### Open Knowledge Format (OKF)
+
+The data home is a native [Open Knowledge Format](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing) knowledge base: a directory of markdown files, each carrying a YAML frontmatter block whose only mandatory field is `type`. Conversations (`type: Conversation`), memory (`type: user|project|feedback|reference|insight`), the global profile (`type: Personal Context`) and the indexes (`type: Index`/`Log`) are all OKF-compliant, and concepts are linked with ordinary relative markdown links.
+
+- New archives are written with OKF frontmatter automatically by the sync hook — no extra step.
+- `index.md` / `log.md` files are rebuilt after every sync for progressive disclosure and change history.
+- To bring an existing data home up to OKF, run the idempotent migration:
+
+```bash
+context-harness migrate-okf --dry-run   # list files that would change
+context-harness migrate-okf             # apply in place
+```
+
+The migration only adds or repairs missing standard frontmatter fields; unknown producer fields and human-authored bodies are preserved, so it is safe to re-run.
 
 ## Skills
 

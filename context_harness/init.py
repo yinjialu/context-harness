@@ -4,7 +4,47 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import okf
 from .config import resolve_context_home
+from .indexing import rebuild_all_indexes
+
+
+MEMORY_INDEX_TEMPLATE = (
+    okf.render_frontmatter(
+        {
+            "type": okf.INDEX_TYPE,
+            "title": "Memory",
+            "description": "memory 知识库索引。",
+            "tags": ["index", "memory"],
+        }
+    )
+    + "\n# Memory\n"
+)
+
+USER_PROFILE_TEMPLATE = (
+    okf.render_frontmatter(
+        {
+            "type": "user",
+            "name": "user-profile",
+            "title": "User Profile",
+            "description": "个人画像 — 背景、技术栈、工作方式。",
+            "tags": ["user"],
+        }
+    )
+    + "\n# User Profile\n"
+)
+
+GLOBAL_CONTEXT_TEMPLATE = (
+    okf.render_frontmatter(
+        {
+            "type": "Personal Context",
+            "title": "关于我",
+            "description": "个人画像、工作方式与个人上下文系统入口。",
+            "tags": ["profile", "personal-context"],
+        }
+    )
+    + "\n# Personal Context\n\nSee `memory/` for detailed context.\n"
+)
 
 
 DEFAULT_CONFIG_TEMPLATE = """[paths]
@@ -222,14 +262,15 @@ def initialize_context_home(
         directory.mkdir(parents=True, exist_ok=True)
 
     _ensure_config_context_home(home / "config.toml", home, statuses)
-    _write_if_missing(home / "memory" / "MEMORY.md", "# Memory\n", statuses)
-    _write_if_missing(home / "memory" / "user_profile.md", "# User Profile\n", statuses)
+    _write_if_missing(home / "memory" / "MEMORY.md", MEMORY_INDEX_TEMPLATE, statuses)
+    _write_if_missing(home / "memory" / "user_profile.md", USER_PROFILE_TEMPLATE, statuses)
     global_context_file = home / "global-claude.md"
-    _write_if_missing(
-        global_context_file,
-        "# Personal Context\n\nSee `memory/` for detailed context.\n",
-        statuses,
-    )
+    _write_if_missing(global_context_file, GLOBAL_CONTEXT_TEMPLATE, statuses)
+
+    # Scaffold the OKF root index (and any conversation indexes from existing
+    # archives). Idempotent: re-running over an unchanged home is a no-op.
+    index_changed = rebuild_all_indexes(home)
+    statuses["index.md"] = "created" if index_changed else "unchanged"
 
     link_claude_global_context(
         global_context_file,

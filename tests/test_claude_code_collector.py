@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from context_harness import okf
 from context_harness.collectors.claude_code import sync_claude_code
 
 
@@ -21,6 +22,33 @@ def _write_session(path: Path, session_id: str, title: str, message: str) -> Non
         + "\n",
         encoding="utf-8",
     )
+
+
+def test_sync_claude_code_captures_cwd_for_project_description(tmp_path):
+    projects_dir = tmp_path / "projects"
+    project_dir = projects_dir / "-Users-jialu-Documents-AuraCare"
+    project_dir.mkdir(parents=True)
+    (project_dir / "with-cwd.jsonl").write_text(
+        "\n".join(
+            [
+                '{"sessionId":"cwd-session","timestamp":"2026-06-16T08:00:00Z","type":"summary","summary":"标题"}',
+                (
+                    '{"sessionId":"cwd-session","timestamp":"2026-06-16T08:01:00Z","cwd":"/Users/jialu/Documents/AuraCare",'
+                    '"type":"user","message":{"role":"user","content":"你好"}}'
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    output_dir = tmp_path / "out"
+    sync_claude_code(projects_dir, output_dir, tmp_path / "state.json", latest=1)
+
+    content = next(output_dir.glob("*.md")).read_text(encoding="utf-8")
+    fields, _ = okf.parse_frontmatter(content)
+    assert fields["description"] == "claude-code · 1 messages · project AuraCare"
+    assert fields["Cwd"] == "/Users/jialu/Documents/AuraCare"
 
 
 def test_sync_claude_code_writes_markdown_archive(tmp_path):
