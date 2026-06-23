@@ -22,7 +22,7 @@ def test_cli_version_returns_project_version(capsys):
 
     captured = capsys.readouterr()
     assert code == 0
-    assert captured.out.strip() == "context-harness 0.1.8"
+    assert captured.out.strip() == "context-harness 0.1.9"
 
 
 def test_cli_requires_top_level_command():
