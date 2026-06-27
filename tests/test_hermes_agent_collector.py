@@ -162,6 +162,35 @@ def test_sync_hermes_agent_bounds_archive_filename_for_long_titles(tmp_path):
     assert archives[0].name.startswith("20260617_session-")
 
 
+def test_sync_hermes_agent_same_day_date_prefixed_ids_do_not_collide(tmp_path):
+    sessions_dir = tmp_path / "sessions"
+    sessions_dir.mkdir()
+    # Both sessions carry date-prefixed ids (as Hermes canonical export produces)
+    # and share the same started_at date. Without the fix, both resolve to
+    # "20260617_20260617.md" and the second overwrites the first.
+    (sessions_dir / "morning.jsonl").write_text(
+        '{"id":"20260617_090000_111111","title":"Morning","started_at":1781703009.0,'
+        '"messages":[{"role":"user","content":"morning task","timestamp":1781703010.0}]}\n',
+        encoding="utf-8",
+    )
+    (sessions_dir / "afternoon.jsonl").write_text(
+        '{"id":"20260617_153009_297382","title":"Afternoon","started_at":1781703009.0,'
+        '"messages":[{"role":"user","content":"afternoon task","timestamp":1781703010.0}]}\n',
+        encoding="utf-8",
+    )
+
+    output_dir = tmp_path / "out"
+    result = sync_hermes_agent(sessions_dir, output_dir, tmp_path / "state.json")
+
+    archives = sorted(output_dir.glob("*.md"))
+    assert result.created == 2, f"expected 2 created, got {result.created}"
+    assert len(archives) == 2, f"expected 2 archives, got: {[a.name for a in archives]}"
+    names = {a.name for a in archives}
+    assert "20260617_20260617.md" not in names, "date-prefix collision filename detected"
+    assert any("morning task" in a.read_text(encoding="utf-8") for a in archives)
+    assert any("afternoon task" in a.read_text(encoding="utf-8") for a in archives)
+
+
 def test_sync_hermes_agent_reads_session_json_snapshots(tmp_path):
     sessions_dir = tmp_path / "sessions"
     sessions_dir.mkdir()

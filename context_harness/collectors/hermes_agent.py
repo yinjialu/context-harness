@@ -181,8 +181,15 @@ def _read_hermes_session(path: Path, session: dict[str, Any]) -> Conversation | 
 
 def _archive_path(output_dir: Path, conversation: Conversation) -> Path:
     date = local_compact_date(conversation.created_at)
-    short_id = _safe_name(conversation.session_id)[:8]
-    return output_dir / f"{date}_{short_id}.md"
+    safe = _safe_name(conversation.session_id)
+    # Hermes session ids are often date-prefixed (e.g. "20260617_153009_abc").
+    # Taking [:8] of such an id yields the date itself, so every same-day
+    # session maps to the same filename. Strip the matching date prefix first.
+    if safe.startswith(date):
+        suffix = safe[len(date):].lstrip("_-")[:8] or safe[:8]
+    else:
+        suffix = safe[:8]
+    return output_dir / f"{date}_{suffix}.md"
 
 
 def _remove_stale_archive(output_dir: Path, previous_archive: str | None, archive_path: Path) -> None:
